@@ -14,6 +14,7 @@ public class Network implements Serializable{
 	private static final long serialVersionUID = 1L; //Default serial version ID 1L
     public static DoubleHash<Integer, Integer, Link> index;
     public static DoubleHash<Integer, Integer, Link> reverseIndex;
+	public static DoubleHash<Integer, Integer, ArrayList<Path>> candidatePaths;
 	private int numNodes, numLinks;
 	
 	/**
@@ -49,20 +50,20 @@ public class Network implements Serializable{
 		numLinks = index.size(); //number of links in the network
 		
 		
-		//candidatePaths = new DoubleHash<Integer, Integer, ArrayList<Path>>();
-		/*
+		candidatePaths = new DoubleHash<Integer, Integer, ArrayList<Path>>();
+		
 		try{
             
 			if(fileName == "nsf.txt"){
-				inputStream = new BufferedReader(new FileReader("nsf_k_paths.txt"));
+				inputStream = new BufferedReader(new FileReader("src/topo_file/nsf_k_paths.txt"));
 			}
 
 			if(fileName == "usnet.txt"){
-				inputStream = new BufferedReader(new FileReader("usnet_k_paths.txt"));
+				inputStream = new BufferedReader(new FileReader("src/topo_file/usnet_k_paths.txt"));
 			}
 			
 			if(fileName == "cost239.txt"){
-				inputStream = new BufferedReader(new FileReader("cost239_k_paths.txt"));
+				inputStream = new BufferedReader(new FileReader("src/topo_file/cost239_k_paths.txt"));
 			}
 						
 			String line;
@@ -82,9 +83,7 @@ public class Network implements Serializable{
 		} catch (Exception e){
 			System.out.println(e);
 		}
-		*/
 		
-        
 	}
 
     public int getNumNodes(){
@@ -111,7 +110,7 @@ public class Network implements Serializable{
     public static void main(String[] args){
 		Network network = new Network("nsf.txt");
         network.getNumNodes();
-		//System.out.println(network.getNumNodes());
+		System.out.println(printpath(candidatePaths.getValues()));
         network.getNumLinks();
     }
 }
