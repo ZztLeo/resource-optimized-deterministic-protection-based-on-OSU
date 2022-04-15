@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,39 +73,8 @@ public class Simulation{
 	
 	public static void main(String[] args){
 		
-		//store the topology resource and k shortest paths
-		Network network = new Network("usnet.txt");
+		Network network = new Network("nsf.txt");
 		Simulation simulation = new Simulation();
-		
-	
-		for(double load = 600; load<=600; load=load+25){
-			Simulation.trafficLoad = load;
-			System.out.println("trafficLoad = " + trafficLoad + ";");
-			
-			for(int m=1; m<10; m=m+1){
-				DataCenter.CU_cost_per_slot_per_vnf = m;
-				System.out.println("CU/slot = " + m + ";");
-				
-				//---------------2018----12----16----
-				for(int b=1; b<9; b++) {
-					List<Integer> initial = new ArrayList<>();
-					Results.bandwidth_map_block_connections_array.put(b, initial);
-				}
-				
-				
-				for(int i=0; i<simulation_times; i++){
-					network.store_DC_locations();
-//					network.generate_VNF_deployment_in_DCs();
-					simulation.startSimulate(network, simulationLength, i);
-					network.reset();
-				}
-
-				Results.print_final_results();
-				System.out.println("---------------------");
-
-			}
-			
-		}
 		
 	}
 	

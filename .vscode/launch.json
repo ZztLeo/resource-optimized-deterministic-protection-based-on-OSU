@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch Path",
+            "request": "launch",
+            "mainClass": "Path",
+            "projectName": "deterministc protection_f8d0351e"
+        },
+        {
+            "type": "java",
+            "name": "Launch Main",
+            "request": "launch",
+            "mainClass": "test_ksp.Main",
+            "projectName": "deterministc protection_f8d0351e"
+        },
+        {
+            "type": "java",
             "name": "Launch DoubleHash",
             "request": "launch",
             "mainClass": "DoubleHash",

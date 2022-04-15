@@ -16,7 +16,8 @@ public class Link implements Serializable {
 	private int to;
 	private int distance;
 	private boolean[] slots;
-	//public static int numSlots = 320;
+
+	public static int total_bandwidth = 100000; //The total bandwidth of each link is 100Gbps
 	
 	public Link (int from, int to, int distance){
 		this.from = from;
@@ -49,15 +50,20 @@ public class Link implements Serializable {
 		return slotsCopy;
 	}
 	
+	/**
+	* Reset slots of the network
+	*/
 	public void reset(){
 		for (int i=0; i<slots.length; i++){
 			slots[i] = false;
 		}
 	}
 	
+
 	public void setSlots(boolean[] slots){
 		System.arraycopy(slots, 0, this.slots, 0, slots.length);
 	}	
+	
 	
 	public int get_free_slot_num(){
 		int num=0;
