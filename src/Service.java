@@ -3,23 +3,25 @@ import java.util.*;
 
 /**
 * @description: Generate service matrix including protected services and unprotected services
-* @ClassName: Network.java
+* @ClassName: Service.java
 * @author Jeyton
-* @Date 2022-3-29 22:37:54
+* @Date 2022-04-16 11:32:51
 * @version 1.00
 */
 public class Service {
 
-	private int id;
-	private int source;
-	private int destination;
 	private static Random rand = new Random();
 	private int[] bandwidthSet = {2,100,500,1000,100000,250000};
 	private double[] serviceProportion = {0.1,0.3,0.1,0.2,0.2,0.1};
 	public double [][] pro_service;
+	public double [][] unpro_service;
 
 
-	//Generate protected services matrix
+	/**
+	 * Generate protected service matrix
+	 * @param g network topology
+	 * @param pro_service_num the number of protected services 
+	 */
 	public void GenerateProtectService(Network g, int pro_service_num){
 
 		pro_service = new double[pro_service_num][5];
@@ -53,6 +55,43 @@ public class Service {
 		}
 
 	}	
+
+	/**
+	 * Generate unprotected service matrix
+	 * @param g network topology
+	 * @param unpro_service_num the number of unprotected services 
+	 */
+	public void GenerateUnProtectService(Network g, int unpro_service_num){
+
+		unpro_service = new double[unpro_service_num][4];
+		double[] unpro_service_bandwidth = new double[unpro_service_num];
+
+		//Chose service bandwidth from the bandwidth set according to the service proportion
+		int temp_length = 0;
+		for(int i = 0; i < bandwidthSet.length; i++){
+			
+			Arrays.fill(unpro_service_bandwidth, temp_length, (int)(temp_length + serviceProportion[i]*unpro_service_num), bandwidthSet[i]);
+			temp_length = temp_length + (int)(serviceProportion[i]*unpro_service_num);
+		}
+		
+		shuffle(unpro_service_bandwidth);
+		
+		
+		//Construct random protected service matrix
+		for(int i = 0; i < unpro_service_num; i++){
+			int rand_src = rand.nextInt(g.getNumNodes());
+			int rand_dst = rand.nextInt(g.getNumNodes());
+			while(rand_src == rand_dst){
+				rand_dst = rand.nextInt(g.getNumNodes());
+			}
+
+			unpro_service[i][0] = i;
+			unpro_service[i][1] = rand_src;
+			unpro_service[i][2] = rand_dst;
+			unpro_service[i][3] = unpro_service_bandwidth[i];
+		}
+
+	}
 
 	public static<T> void swap(double[] a, int i, int j){
         double temp = a[i];
