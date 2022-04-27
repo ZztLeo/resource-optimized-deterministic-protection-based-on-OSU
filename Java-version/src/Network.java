@@ -15,7 +15,7 @@ public class Network implements Serializable{
     public static DoubleHash<Integer, Integer, Link> index;
     public static DoubleHash<Integer, Integer, Link> reverseIndex;
 	public static DoubleHash<Integer, Integer, ArrayList<Path>> candidatePaths;
-	private int numNodes, numLinks;
+	private static int numNodes, numLinks;
 	
 	/**
 	* Read the network topology file when constructing a Network instance
@@ -52,6 +52,7 @@ public class Network implements Serializable{
 		
 		candidatePaths = new DoubleHash<Integer, Integer, ArrayList<Path>>();
 		
+		/*
 		try{
             
 			if(fileName == "nsf.txt"){
@@ -82,15 +83,15 @@ public class Network implements Serializable{
 			}
 		} catch (Exception e){
 			System.out.println(e);
-		}
+		}*/
 		
 	}
 
-    public int getNumNodes(){
+    public static int getNumNodes(){
 		return numNodes;
 	}
 	
-	public int getNumLinks(){
+	public static int getNumLinks(){
 		return numLinks;
     }
 
@@ -102,7 +103,6 @@ public class Network implements Serializable{
 		return reverseIndex.get(to, from);
 	}
 
-
 	/**
 	 * Main function for testing
 	 * @param args 
@@ -110,7 +110,7 @@ public class Network implements Serializable{
     public static void main(String[] args){
 		Network network = new Network("nsf.txt");
         network.getNumNodes();
-		System.out.println(printpath(candidatePaths.getValues()));
+		
         network.getNumLinks();
     }
 }

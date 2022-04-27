@@ -77,7 +77,7 @@ public class Service {
 		shuffle(unpro_service_bandwidth);
 		
 		
-		//Construct random protected service matrix
+		//Construct random unprotected service matrix
 		for(int i = 0; i < unpro_service_num; i++){
 			int rand_src = rand.nextInt(g.getNumNodes());
 			int rand_dst = rand.nextInt(g.getNumNodes());
@@ -109,13 +109,15 @@ public class Service {
 
 	public static void main(String[] args){
 		Network network = new Network("nsf.txt");
-		Service prot_service = new Service();
-		//double arry[][] = prot_service.ProtectService(network, 200);
-		/*for(int i = 0; i < arry.length; i++){
-			for(int j = 0; j < arry[i].length; j++){
-				System.out.println(arry[i][j]);
+		Service service = new Service();
+		service.GenerateProtectService(network, 200);
+		service.GenerateUnProtectService(network, 400);
+
+		for(int i = 0; i < service.unpro_service.length; i++){
+			for(int j = 0; j < service.unpro_service[i].length; j++){
+				System.out.println(service.unpro_service[i][j]);
 			}
 		}
-		*/
 	}
+
 }

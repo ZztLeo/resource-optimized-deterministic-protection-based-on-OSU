@@ -34,16 +34,16 @@ public class ShortestPath {
                     ", weight=" + weight +
                     '}';
         }
- 
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
- 
+
             MyPath path1 = (MyPath) o;
             return path != null ? path.equals(path1.path) : path1.path == null;
         }
- 
+
         @Override
         public int hashCode() {
             int result;
@@ -54,8 +54,8 @@ public class ShortestPath {
             return result;
         }
     }
- 
- 
+
+
     /**
      * 用Yen's KSP算法从图中找出从startIndex到endIndex的K条最短路径
      *
@@ -137,7 +137,7 @@ public class ShortestPath {
         }
         return result;
     }
- 
+
     /**
      * 用Dijkstra算法得到从startIndex到endIndex的一条最短路径
      *
@@ -148,8 +148,7 @@ public class ShortestPath {
      * @param unavailableEdges：求最短路径时不可用的边
      * @return
      */
-    public MyPath getSingleShortestPath_dijkstra(MyGraph g, int startIndex, int endIndex,
-                                                 List < Integer > unavailableNodeIndexs, List < MyPath > unavailableEdges) {
+    public MyPath getSingleShortestPath_dijkstra(MyGraph g, int startIndex, int endIndex, List < Integer > unavailableNodeIndexs, List < MyPath > unavailableEdges) {
         if (startIndex == -1) {
             //            throw new Exception("getSingleShortestPath_dijkstra()起始点编号输入错误");
         }
@@ -161,7 +160,7 @@ public class ShortestPath {
         double[] dist = new double[g.numPoint];
         // s到i的最短路径上i的前一个节点编号
         int[] path = new int[g.numPoint];
- 
+
         // 初始化数组
         set[startIndex] = 1;
         for (int i = 0; i < g.numPoint; i++) {
@@ -178,7 +177,7 @@ public class ShortestPath {
                 }
             }
         }
- 
+
         // 不能走的边
         if (unavailableEdges != null && unavailableEdges.size() != 0) {
             for (MyPath p: unavailableEdges) {
@@ -189,14 +188,14 @@ public class ShortestPath {
                 }
             }
         }
- 
+
         // 不能走的点
         if (unavailableNodeIndexs != null && unavailableNodeIndexs.size() != 0) {
             for (Integer point: unavailableNodeIndexs) {
                 set[point] = 1;
             }
         }
- 
+
         // 需进行n-2轮循环
         for (int i = 0; i < g.numPoint - 2; i++) {
             int k = -1;
@@ -230,7 +229,7 @@ public class ShortestPath {
                 }
             }
         }
- 
+
         System.out.println("运行Dijkstra算法后的数组情况为：");
         System.out.print("set[]:");
         for (int i = 0; i < g.numPoint; i++) {
@@ -261,7 +260,7 @@ public class ShortestPath {
             return result;
         }
     }
- 
+
     /**
      * 输出从节点S到节点T的最短路径
      *
@@ -284,5 +283,5 @@ public class ShortestPath {
         System.out.println();
         return result;
     }
- 
+
 }

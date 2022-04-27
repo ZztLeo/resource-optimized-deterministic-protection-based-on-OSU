@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch Algorithms",
+            "request": "launch",
+            "mainClass": "Algorithms",
+            "projectName": "deterministc protection_f8d0351e"
+        },
+        {
+            "type": "java",
             "name": "Launch Service",
             "request": "launch",
             "mainClass": "Service",

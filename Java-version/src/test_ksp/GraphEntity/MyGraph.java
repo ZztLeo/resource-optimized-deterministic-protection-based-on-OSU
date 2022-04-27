@@ -50,7 +50,7 @@ public class MyGraph{
         {
             if(MyGraph.visted[a.adjvex]==0)
                 DFS(MyGraph,a.adjvex);
-            a=a.nextEdge;                                                    //实际上像是一种遍历链表的行为
+            a=a.nextEdge;//实际上像是一种遍历链表的行为
         }
     }
 
