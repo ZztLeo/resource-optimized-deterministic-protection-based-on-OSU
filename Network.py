@@ -18,11 +18,12 @@ class Graph:
     def __init__(self):
         self.file_prefix = 'resource'
         self.G = None
+        self.BG = None
         self.node_num = None
         self.link_num = None
         self.node_edge = None #node-edge relation ndarray
         self.link_capacity = 100000 #100Gbps of each link
-        self.
+        self.network_status = dict() 
 
     # initalize the graph
     def graph_init(self):
@@ -32,14 +33,29 @@ class Graph:
         G.add_nodes_from([i for i in range(1, self.node_num+1)])
         G.add_weighted_edges_from(self.node_edge)
         self.G = G
-        #print(type(self.G))
+
+        status_key = []
+        status_value = []
+        for link in self.node_edge:
+            status_key.append(str(link[0])+'->'+str(link[1]))
+            status_key.append(str(link[1])+'->'+str(link[0]))
+            status_value.append(self.link_capacity)
+            status_value.append(self.link_capacity)
+        self.network_status = dict(zip(status_key, status_value))
+        #print(self.network_status)
+
+    def graph_remove_nodes(self, node_list):
+        BG = nx.Graph
+        BG = copy.deepcopy(self.G)
+        self.BG = BG
+        self.BG.remove_nodes_from(node_list)
 
     # draw the graph topology
     def graph_draw(self):
-        pos = nx.spring_layout(self.G) # choose a layout from https://networkx.github.io/documentation/latest/reference/drawing.html#module-networkx.drawing.layout
-        weights = nx.get_edge_attributes(self.G, 'weight')
-        nx.draw(self.G, pos, with_labels=True)
-        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=weights)
+        pos = nx.spring_layout(self.BG) # choose a layout from https://networkx.github.io/documentation/latest/reference/drawing.html#module-networkx.drawing.layout
+        weights = nx.get_edge_attributes(self.BG, 'weight')
+        nx.draw(self.BG, pos, with_labels=True)
+        nx.draw_networkx_edge_labels(self.BG, pos, edge_labels=weights)
         plt.savefig('./topo.png')
 
     # read the graph file
@@ -51,7 +67,7 @@ class Graph:
         :param topo_file: network topology
         """
         file = os.path.join(self.file_prefix, topo_file)
-        rtn = {}
+
         if os.path.isfile(file):
             datas = np.loadtxt(file, dtype = str, delimiter='|', skiprows=2)
             origin_data = datas[:, 1:(datas.shape[1]-1)]
@@ -80,4 +96,5 @@ if __name__ == '__main__':
     G = Graph()
     G.graph_read('NSFNET.md')
     G.graph_init()
+    G.graph_remove_nodes([3,5,7])
     G.graph_draw()
