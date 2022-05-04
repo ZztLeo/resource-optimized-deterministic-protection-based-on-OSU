@@ -32,6 +32,7 @@ class Graph:
         self.link_num = get_link_num(self.node_edge)
         G.add_nodes_from([i for i in range(1, self.node_num+1)])
         G.add_weighted_edges_from(self.node_edge)
+        G = G.to_directed()
         self.G = G
 
         status_key = []
@@ -39,10 +40,12 @@ class Graph:
         for link in self.node_edge:
             status_key.append(str(link[0])+'->'+str(link[1]))
             status_key.append(str(link[1])+'->'+str(link[0]))
-            status_value.append(self.link_capacity)
-            status_value.append(self.link_capacity)
+            status_value.append([self.link_capacity])
+            status_value.append([self.link_capacity])
         self.network_status = dict(zip(status_key, status_value))
-        #print(self.network_status)
+
+        print('----->双向网络初始化完成，', self.node_num,'个节点，', self.link_num, '条链路，', '链路容量：', self.link_capacity)
+        
 
     def graph_remove_nodes(self, node_list):
         BG = nx.Graph
@@ -52,10 +55,10 @@ class Graph:
 
     # draw the graph topology
     def graph_draw(self):
-        pos = nx.spring_layout(self.BG) # choose a layout from https://networkx.github.io/documentation/latest/reference/drawing.html#module-networkx.drawing.layout
-        weights = nx.get_edge_attributes(self.BG, 'weight')
-        nx.draw(self.BG, pos, with_labels=True)
-        nx.draw_networkx_edge_labels(self.BG, pos, edge_labels=weights)
+        pos = nx.spring_layout(self.G) # choose a layout from https://networkx.github.io/documentation/latest/reference/drawing.html#module-networkx.drawing.layout
+        weights = nx.get_edge_attributes(self.G, 'weight')
+        nx.draw(self.G, pos, with_labels=True)
+        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=weights)
         plt.savefig('./topo.png')
 
     # read the graph file
@@ -67,6 +70,7 @@ class Graph:
         :param topo_file: network topology
         """
         file = os.path.join(self.file_prefix, topo_file)
+        print('----->网络文件读取完成，拓扑为：', topo_file[:-3])
 
         if os.path.isfile(file):
             datas = np.loadtxt(file, dtype = str, delimiter='|', skiprows=2)
@@ -96,5 +100,4 @@ if __name__ == '__main__':
     G = Graph()
     G.graph_read('NSFNET.md')
     G.graph_init()
-    G.graph_remove_nodes([3,5,7])
     G.graph_draw()

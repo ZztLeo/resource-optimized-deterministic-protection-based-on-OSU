@@ -5,6 +5,7 @@
 # Jeyton Lee 2022-4-28 22:59:32
 
 
+from os import stat
 import networkx as nx
 import numpy as np
 import copy as cp
@@ -14,45 +15,93 @@ from Service import Service
 from operator import itemgetter
 
 def heuristic(Net, Serv):
+    print('----->启发式算法规划业务中...')
     
-    # Protection services plan
-    for pserv_list in Serv.pro_service:
-        # Allocate work path for protection service
-        allo_flag_w, work_path = R_OSU_A(pserv_list, Net, k=3, WB_flag=True)
+    pro_serv_block_num = 0
+    traffic_block_num = 0
+    
+    # 业务规划
+    for single_serv in Serv.serv_matrix:
         
-        # Allocate backup path for protection service
-        remove_list = work_path[1:-1]
-        Net.graph_remove_nodes(remove_list) # Protection path and working path are disjoint
-        pserv_list[3] = 2 # The protection path allocates 2M bandwidth
-        # Allocate backup path for protection service
-        allo_flag_b, backup_path = R_OSU_A(pserv_list, Net, k=3, WB_flag=False, work_path=work_path)
+        if single_serv[1] == 'P':
+            # 为保护业务分配工作路径
+            allo_flag_w, work_path = R_OSU_A(single_serv, Net, k=3, WB_flag=True)
         
-        if allo_flag_w & allo_flag_b == True:
-            Serv.pro_service[pserv_list[0]][5] = 'SUCC'
-            Serv.serv_path.append([pserv_list[0], work_path, 'W'])
-            Serv.serv_path.append([pserv_list[0], backup_path, 'B'])
-        else:
-            Serv.pro_service[pserv_list[0]][5] = 'BLOCK'
-            Serv.serv_path.append([pserv_list[0], [], None])
-            Serv.serv_path.append([pserv_list[0], [], None])
+            # 为保护业务分配保护路径
+            remove_list = work_path[1:-1]
+            Net.graph_remove_nodes(remove_list) # 保护路径与工作路径不得相交
+            single_serv[4] = 2 # 保护管道带宽2M
+            allo_flag_b, backup_path = R_OSU_A(single_serv, Net, k=3, WB_flag=False, work_path=work_path)
+        
+            if allo_flag_w & allo_flag_b == True:
+                Serv.serv_matrix[single_serv[0]][5] = 'SUCC'
+                Serv.serv_path[single_serv[0]] = [[work_path, 'work_path'], [backup_path, 'backup_path']]
+                
+            else:
+                Serv.serv_matrix[single_serv[0]][5] = 'BLOCK'
+                Serv.serv_path[single_serv[0]] = [[[], 'block']]
+                pro_serv_block_num = pro_serv_block_num + 1
 
-    print(Serv.serv_path)
+        elif single_serv[1] == 'T':
+            allo_flag_t, traffic_path = R_OSU_A(single_serv, Net, k=5, WB_flag=True)
+            if allo_flag_t ==True:
+                Serv.serv_matrix[single_serv[0]][5] = 'SUCC'
+                Serv.serv_path[single_serv[0]] = [[traffic_path, 'traffic_path']]
+            else:
+                Serv.serv_matrix[single_serv[0]][5] = 'BLOCK'
+                Serv.serv_path[single_serv[0]] = [[[], 'block']]
+                traffic_block_num = traffic_block_num + 1
+    pro_serv_block_rate = pro_serv_block_num / Serv.pro_serv_num
+    traffic_block_rate = traffic_block_num / Serv.traffic_num
+    total_block_rate = (pro_serv_block_num + traffic_block_num) / (Serv.pro_serv_num + Serv.traffic_num)
+    print('----->启发式算法业务部署完成')
+    print('受保护业务阻塞数量：', pro_serv_block_num, '，阻塞率：{:.2%}'.format(pro_serv_block_rate) , '；其他流量阻塞数量：', traffic_block_num, '，阻塞率：{:.2%}'.format(traffic_block_rate), '，总体阻塞率：{:.2f}'.format(total_block_rate))
+
+    rest_bw = 0
+    key_num = 0
+    for _, value in Net.network_status.items():
+        rest_bw = rest_bw + value[0]
+        key_num = key_num + 1
+    total_bw = key_num * Net.link_capacity
+    resource_utilization_rate = (total_bw - rest_bw) / total_bw
+
+    print('整网资源利用率：{:.2%}'.format(resource_utilization_rate))
+
+def statistics_link_status(Net, Serv) -> dict:
+    link_status = Net.network_status
+    
+    for key_id, value_path in Serv.serv_path.items():
+        if value_path[0][1] == 'block':
+            continue
+        else: 
+            for sub_path in value_path:
+                
+                for j in range(len(sub_path[0])-1):
+                    link_key = str(sub_path[0][j])+'->'+str(sub_path[0][j+1])
+                    link_serv = [key_id, sub_path[1]]
+                    curr_list = link_status[link_key]
+                    curr_list.append(link_serv)
+                    link_status[link_key] = curr_list
+
+
+    return link_status
+
 
 def R_OSU_A(single_serv, Net, k, WB_flag=True, work_path=[]):
     """
-        Calculate paths for service and allocate OSU resources (including working paths or protection paths)
+        为业务计算路径并分配OSU资源(包括工作路径和保护路径)
 
-        :param single_serv: List of single service
-        :param Net: Network, including graph G for computing working paths and BG for computing protection paths
-        :param k: k of ksp
-        :param WB_flag: True->caculate work path; False->caculate backup path
-        :param work_path: Used to determine whether the backup path and the working path are the same, the default is []
+        :param single_serv: 单条业务的属性list
+        :param Net: Network, 包括用于计算工作路径的图G和用于计算保护路径的图BG
+        :param k: ksp算法的k
+        :param WB_flag: True->计算保护业务工作路径或其他流量的路径; False->计算保护路径
+        :param work_path: 用于确定保护路径与工作路径是否一直，默认为[]
         """
 
     if WB_flag == True:
-        ksp_list, _ = k_shortest_paths(Net.G, single_serv[1], single_serv[2], k)
+        ksp_list, _ = k_shortest_paths(Net.G, single_serv[2], single_serv[3], k)
     else:
-        ksp_list, _ = k_shortest_paths(Net.BG, single_serv[1], single_serv[2], k)
+        ksp_list, _ = k_shortest_paths(Net.BG, single_serv[2], single_serv[3], k)
         
     allo_flag = False
     alloc_path = [] # list of service allocated paths: [service ID, [the allocated path]]
@@ -69,13 +118,13 @@ def R_OSU_A(single_serv, Net, k, WB_flag=True, work_path=[]):
             link_key = str(path_list[i])+'->'+str(path_list[i+1])
             link_key_list.append(link_key)
 
-            if Net.network_status[link_key] < single_serv[3]:
+            if Net.network_status[link_key][0] < single_serv[4]:
                 path_avail_flag = False
                 break
             
         if path_avail_flag ==True:
             for key in link_key_list:
-                Net.network_status[key] = Net.network_status[key]- single_serv[3]
+                Net.network_status[key][0] = Net.network_status[key][0]- single_serv[4]
             allo_flag = True
             alloc_path = path_list
             break
@@ -131,7 +180,7 @@ if __name__ == '__main__':
     G.graph_read('NSFNET.md')
     G.graph_init()
     S = Service()
-    S.generate_service(G, 20, 0)
+    S.generate_service(G, 20, 40)
 
     np.set_printoptions(suppress=True)
     heuristic(G, S)

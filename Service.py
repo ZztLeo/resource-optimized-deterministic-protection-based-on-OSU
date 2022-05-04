@@ -21,19 +21,26 @@ class Service:
         self.serviceProportion = {
             2: 0.1,    100: 0.3,    500: 0.1, 
             1000: 0.2, 10000: 0.2, 25000: 0.1}
-        self.pro_service = []
-        self.unpro_service = []
-        self.serv_path = []
 
-    def generate_service(self, g, pro_serv_num, unpro_serv_num):
-        self.pro_service = generate_proservice(g, self.serviceProportion, pro_serv_num)
-        self.unpro_service = generate_unproservice(g, self.serviceProportion, unpro_serv_num)
-        #self.is_block = np.zeros(pro_serv_num+unpro_serv_num)
+        self.serv_matrix = []
+        self.serv_path = dict()
+        self.pro_serv_num = None
+        self.traffic_num = None
 
-        
-        #print("=====>Protection Service List:", *self.pro_service,  sep='\n')
-        #print("=====>unProtection Service List:",*self.unpro_service, sep='\n')
+    def generate_service(self, g, pro_serv_num, traffic_num):
+        print('----->正在按照比例随机生成业务，不同带宽的业务数量比例为：', self.serviceProportion)
+        self.pro_serv_num = pro_serv_num
+        self.traffic_num = traffic_num
+        pro_service = []
+        traffic = []
+        pro_service = generate_proservice(g, self.serviceProportion, pro_serv_num)
+        traffic = generate_unproservice(g, self.serviceProportion, traffic_num)
+        self.serv_matrix = pro_service + traffic
 
+        for i in range(pro_serv_num+traffic_num):
+            self.serv_matrix[i].insert(0,i)
+
+        print('----->业务初始化完成，总业务数量：', self.pro_serv_num + self.traffic_num,'，其中保护类业务数量：', self.pro_serv_num, '，其他流量数量：', self.traffic_num)
 
 def generate_proservice(g, serv_prop: dict, pro_serv_num: int):
     
@@ -54,33 +61,33 @@ def generate_proservice(g, serv_prop: dict, pro_serv_num: int):
         while(rand_src == rand_dst):
             rand_dst = random.randint(1,g.node_num)
         rand_reli = round(random.uniform(0.5,1),2)
-        pro_serv = [i, rand_src, rand_dst, serv_band[i], rand_reli, None]
+        pro_serv = ['P', rand_src, rand_dst, serv_band[i], rand_reli, None]
         pro_serv_list.append(pro_serv)
     
     return(pro_serv_list)
 
-def generate_unproservice(g, serv_prop: dict, unpro_serv_num: int) -> list:
+def generate_unproservice(g, serv_prop: dict, traffic_num: int) -> list:
     
     np.set_printoptions(suppress=True)
     
     # Chose service bandwidth from the bandwidth set according to the service proportion
     serv_band = np.array([])
     for key, value in serv_prop.items():
-        band = np.array([key]*int(value*unpro_serv_num))
+        band = np.array([key]*int(value*traffic_num))
         serv_band = np.concatenate([serv_band, band])
     np.random.shuffle(serv_band)
     
     #Construct random unprotected service list
-    unpro_serv_list = []
-    for i in range(unpro_serv_num):
+    traffic_list = []
+    for i in range(traffic_num):
         rand_src = random.randint(1,g.node_num)
         rand_dst = random.randint(1,g.node_num)
         while(rand_src == rand_dst):
             rand_dst = random.randint(1,g.node_num)
-        unpro_serv = [i, rand_src, rand_dst, serv_band[i], 0, None]
-        unpro_serv_list.append(unpro_serv)
+        single_traffic = ['T', rand_src, rand_dst, serv_band[i], 0, None]
+        traffic_list.append(single_traffic)
     
-    return(unpro_serv_list)
+    return(traffic_list)
 
 if __name__ == '__main__':
     g = Graph()
