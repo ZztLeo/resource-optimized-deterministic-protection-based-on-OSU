@@ -1,7 +1,7 @@
 # !usr/bin/env python
 # -*- coding:utf-8 -*-
 
-# this is for initalizing the network graph
+# Construct a network
 # Jeyton Lee 2022-4-24 14:37:47
 
 
@@ -9,31 +9,29 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import copy
-
-from args import args
+import copy as cp
 
 
-class Graph:
+class Network:
     def __init__(self):
         self.file_prefix = 'resource'
-        self.G = None
-        self.BG = None
+        self.graph = None
+        self.graph_backup = None
         self.node_num = None
         self.link_num = None
         self.node_edge = None #node-edge relation ndarray
         self.link_capacity = 100000 #100Gbps of each link
         self.network_status = dict() 
 
-    # initalize the graph
+    # initialize a network graph
     def graph_init(self):
-        G = nx.Graph()
+        g = nx.Graph()
         self.node_num = get_node_num(self.node_edge)
         self.link_num = get_link_num(self.node_edge)
-        G.add_nodes_from([i for i in range(1, self.node_num+1)])
-        G.add_weighted_edges_from(self.node_edge)
-        G = G.to_directed()
-        self.G = G
+        g.add_nodes_from([i for i in range(1, self.node_num+1)])
+        g.add_weighted_edges_from(self.node_edge)
+        g = g.to_directed()
+        self.graph = g
 
         status_key = []
         status_value = []
@@ -44,14 +42,19 @@ class Graph:
             status_value.append([self.link_capacity])
         self.network_status = dict(zip(status_key, status_value))
 
-        print('----->双向网络初始化完成，', self.node_num,'个节点，', self.link_num, '条链路，', '链路容量：', self.link_capacity)
+        print('----->Bidirectional network initialization completed.\n', self.node_num,'nodes,', self.link_num, 'links,', 'link capacity:', self.link_capacity, '\n')
         
-
     def graph_remove_nodes(self, node_list):
-        BG = nx.Graph
-        BG = copy.deepcopy(self.G)
-        self.BG = BG
-        self.BG.remove_nodes_from(node_list)
+        """
+        Remove the specified node from the network graph (for computing protection path).
+        
+        Args:
+            node_list: A list of nodes to remove.
+        """
+        g_b = nx.Graph
+        g_b = cp.deepcopy(self.graph)
+        self.graph_backup = g_b
+        self.graph_backup.remove_nodes_from(node_list)
 
     # draw the graph topology
     def graph_draw(self):
@@ -61,16 +64,16 @@ class Graph:
         nx.draw_networkx_edge_labels(self.G, pos, edge_labels=weights)
         plt.savefig('./topo.png')
 
-    # read the graph file
     def graph_read(self, topo_file: str):
         """
-        Format of file is md
-        Content: |index|source|destination|weight|
-
-        :param topo_file: network topology
+        Read the graph file. 
+        Format of file is md. Content: |index|source|destination|weight|
+        
+        Args:
+        topo_file: A network topology file.
         """
         file = os.path.join(self.file_prefix, topo_file)
-        print('----->网络文件读取完成，拓扑为：', topo_file[:-3])
+        print('----->The network file read is complete.\nTopology:', topo_file[:-3], '\n')
 
         if os.path.isfile(file):
             datas = np.loadtxt(file, dtype = str, delimiter='|', skiprows=2)
@@ -95,9 +98,9 @@ def get_link_num(node_edge) -> int:
     return max_link_id
 
 
-# main函数
+# main function
 if __name__ == '__main__':
-    G = Graph()
-    G.graph_read('NSFNET.md')
-    G.graph_init()
-    G.graph_draw()
+    g = Network()
+    g.graph_read('NSFNET.md')
+    g.graph_init()
+    g.graph_draw()
