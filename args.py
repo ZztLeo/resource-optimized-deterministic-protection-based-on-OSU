@@ -1,8 +1,8 @@
 # !usr/bin/env python
 # -*- coding:utf-8 -*-
 
-# this is for Graph
-# Jeyton Lee 2022-4-24 14:37:47
+# Parameter setup
+# Jeyton Lee 2022-05-06 16:04:52
 
 
 import argparse
@@ -15,6 +15,6 @@ parser.add_argument('--pro_service_num', type=int, help='number of protected ser
 parser.add_argument('--traffic_num', type=int, help='number of traffic')
 parser.add_argument('--fault_time', type=int, help='times of fault')
 
-parser.add_argument('--print', default='True', help='write out or not')
+
 
 args = parser.parse_args()

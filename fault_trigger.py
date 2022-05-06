@@ -1,3 +1,9 @@
+# !usr/bin/env python
+# -*- coding:utf-8 -*-
+
+# Trigger network fault and statistics
+# Jeyton Lee 2022-4-24 14:37:47
+
 
 import random
 
