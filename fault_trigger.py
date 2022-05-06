@@ -25,7 +25,20 @@ def random_fault(net) -> str:
     return fault_link
 
 def fault_impact_statistics(link_status: dict, fault_link: str, serv_path: dict, serv_matrix: dict):
-        
+    """
+    Count services affected after the fault.
+
+    Args:
+        link_status: A dictionary of network link status.
+        fault_link: A string of fault link.
+        serv_path: A dictionary of service path.
+        serv_matrix: A dictionary of service matrix.
+    
+    Returns:
+        fail_serv: The list of failure switching services id. 
+        impact_traffic: The list of affected traffic id.
+    """
+
     impact = link_status[fault_link][1:] # All service disruptions caused by fault
 
     switch_serv = [] # Protection services to be switched

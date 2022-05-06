@@ -14,7 +14,6 @@ import copy as cp
 
 class Network:
     def __init__(self):
-        self.file_prefix = 'resource'
         self.graph = None
         self.graph_backup = None
         self.node_num = None
@@ -64,7 +63,7 @@ class Network:
         nx.draw_networkx_edge_labels(self.G, pos, edge_labels=weights)
         plt.savefig('./topo.png')
 
-    def graph_read(self, topo_file: str):
+    def graph_read(self, file_prefix: str, topo_file: str):
         """
         Read the graph file. 
         Format of file is md. Content: |index|source|destination|weight|
@@ -72,7 +71,7 @@ class Network:
         Args:
         topo_file: A network topology file.
         """
-        file = os.path.join(self.file_prefix, topo_file)
+        file = os.path.join(file_prefix, topo_file)
         print('----->The network file read is complete.\nTopology:', topo_file[:-3], '\n')
 
         if os.path.isfile(file):

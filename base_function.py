@@ -10,21 +10,21 @@ import copy as cp
 from network import Network
 from service import Service
 
-def link_status_statistics(net, serv) -> dict:
+def link_status_statistics(net, serv_path: dict) -> dict:
     """
     Collect statistics on the service information on each link after planning the services.
         
     Args:
         net: An instance of Network class.
-        serv: An instance of Service class.
+        serv_path: A dictionary of service path.
     Returns:
         link_status: A dictionary of each link status.
     """
     
     link_status = cp.deepcopy(net.network_status)
     
-    for serv_id, serv_path in serv.serv_path.items():
-        for key, value in serv_path.items():
+    for serv_id, s_p in serv_path.items():
+        for key, value in s_p.items():
             if key == 'block':
                 break
             else: 
@@ -57,13 +57,16 @@ def resource_allocation(single_serv, net, k, flag=True, work_path=[]):
         alloc_path: A list of allocated path
     """
 
-    if flag == True:
-        ksp_list, _ = k_shortest_paths(net.graph, single_serv[1], single_serv[2], k)
-    else:
-        ksp_list, _ = k_shortest_paths(net.graph_backup, single_serv[1], single_serv[2], k)
-        
     allo_flag = False
     alloc_path = [] # list of service allocated paths: [service ID, [the allocated path]]
+    try:
+        if flag == True:
+            ksp_list, _ = k_shortest_paths(net.graph, single_serv[1], single_serv[2], k)
+        else:
+            ksp_list, _ = k_shortest_paths(net.graph_backup, single_serv[1], single_serv[2], k)
+    except nx.NetworkXNoPath:
+        return allo_flag, alloc_path
+
     for path_list in ksp_list:
         
         # Eliminate the situation where the direct connection of the working path leads to the same calculation result of the protection path
@@ -122,6 +125,7 @@ def k_shortest_paths(G, source, target, k = 1, weight = 'weight'):
                 if totalpath not in B:
                     B += [totalpath]
             except nx.NetworkXNoPath:
+                #print(source, target)
                 continue
         if len(B) == 0:
             break

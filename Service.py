@@ -13,16 +13,11 @@ from operator import itemgetter
 class Service:
     def __init__(self):
         self.serv_proportion = {
-            2: 0.1,    100: 0.3,    500: 0.1, 
-            1000: 0.2, 10000: 0.2, 25000: 0.1}
+            2: 0.1,    100: 0.4, 
+            1000: 0.3, 10000: 0.2}
 
         self.serv_matrix = dict() # key: servie id, value: service attributes
-        # ['P/T', src, dst, bandwidth, reliability, allocated_flag]
-        self.serv_path = dict() # key: service id, value :service path (dict)
-        # Three formats of value in serv_path:
-        # protected service: {'work_path': work path, 'backup_path': backup path}
-        # traffic: {'traffic_path': traffic path}
-        # block: {'block': []}
+        # ['P/T', src, dst, bandwidth, reliability]
         self.pro_serv_num = None
         self.traffic_num = None
 
@@ -83,7 +78,7 @@ def generate_pro_service(net, serv_prop: dict, pro_serv_num: int) -> list:
         while(rand_src == rand_dst):
             rand_dst = random.randint(1,net.node_num)
         rand_reli = round(random.uniform(0.5,1),2)
-        pro_serv = ['P', rand_src, rand_dst, serv_band[i], rand_reli, None]
+        pro_serv = ['P', rand_src, rand_dst, serv_band[i], rand_reli]
         pro_serv_list.append(pro_serv)
     
     return pro_serv_list
@@ -116,7 +111,7 @@ def generate_unpro_service(net, serv_prop: dict, traffic_num: int) -> list:
         rand_dst = random.randint(1,net.node_num)
         while(rand_src == rand_dst):
             rand_dst = random.randint(1,net.node_num)
-        single_traffic = ['T', rand_src, rand_dst, serv_band[i], 0, None]
+        single_traffic = ['T', rand_src, rand_dst, serv_band[i], 0]
         traffic_list.append(single_traffic)
     
     return traffic_list 
