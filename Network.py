@@ -18,9 +18,11 @@ class Network:
         self.graph_backup = None
         self.node_num = None
         self.link_num = None
-        self.node_edge = None #node-edge relation ndarray
-        self.link_capacity = 100000 #100Gbps of each link
+        self.node_edge = None # node-edge relation ndarray
+        self.link_capacity = 100000 # 100Gbps of each wavelength
+        self.wavelength_num = 40 # 40 wavelength of each link
         self.network_status = dict() 
+        # {A->B: {wavelength1: bandwidth, wavelength2: bandwidth, wavelength3: bandwidth...}...}
 
     # initialize a network graph
     def graph_init(self):
@@ -37,11 +39,18 @@ class Network:
         for link in self.node_edge:
             status_key.append(str(link[0])+'->'+str(link[1]))
             status_key.append(str(link[1])+'->'+str(link[0]))
-            status_value.append([self.link_capacity])
-            status_value.append([self.link_capacity])
+            
+            # construct wavelength dictionary
+            wl_key = []
+            wl_value = []
+            for wl in range(self.wavelength_num):
+                wl_key.append(wl)
+                wl_value.append(self.link_capacity)
+            status_value.append(dict(zip(wl_key, wl_value)))
+            status_value.append(dict(zip(wl_key, wl_value)))
         self.network_status = dict(zip(status_key, status_value))
 
-        print('----->Bidirectional network initialization completed.\n', self.node_num,'nodes,', self.link_num, 'links,', 'link capacity:', self.link_capacity, '\n')
+        print('----->Bidirectional network initialization completed.\n', self.node_num,'nodes,', self.link_num, 'links,', self.wavelength_num, 'wavelengths of each link,', 'single-wavelength capacity:', self.link_capacity, '\n')
         
     def graph_remove_nodes(self, node_list):
         """
@@ -69,7 +78,7 @@ class Network:
         Format of file is md. Content: |index|source|destination|weight|
         
         Args:
-        topo_file: A network topology file.
+            topo_file: A network topology file.
         """
         file = os.path.join(file_prefix, topo_file)
         print('----->The network file read is complete.\nTopology:', topo_file[:-3], '\n')

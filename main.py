@@ -43,9 +43,9 @@ def simulation():
 
     print('----->Randomly trigger a single-port fault %d times...'%fault_time)
     for _ in range(fault_time):
-        fault_link = Ft.random_fault(net)
+        fault_link, fault_wavelength = Ft.random_fault(net)
         
-        fail_serv, impact_traffic = Ft.fault_impact_statistics(link_status, fault_link, serv_path, serv.serv_matrix)
+        fail_serv, impact_traffic = Ft.fault_impact_statistics(net, link_status, fault_link, fault_wavelength, serv_path, serv.serv_matrix)
 
         total_fail_num = total_fail_num + len(fail_serv)
 

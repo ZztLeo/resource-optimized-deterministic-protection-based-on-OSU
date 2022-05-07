@@ -19,24 +19,28 @@ def random_fault(net) -> str:
     
     Returns:
         fault_link: The fault link string (A->B).
+        rand_faultwavelength: The fault port on the fault link (wavelength id).
     """
     rand_faultlink = random.randint(0,net.link_num - 1) # 随机选择链路故障
     rand_faultdir = random.randint(0,1) # 随机选择正向或反向链路故障(0表示正向链路故障，1为反向链路故障)
-    
+    rand_faultwavelength = random.randint(0,39)
+
     if rand_faultdir == 0:
         fault_link = str(net.node_edge[rand_faultlink][0])+'->'+str(net.node_edge[rand_faultlink][1])
     else:
         fault_link = str(net.node_edge[rand_faultlink][1])+'->'+str(net.node_edge[rand_faultlink][0])
 
-    return fault_link
+    return fault_link, rand_faultwavelength
 
-def fault_impact_statistics(link_status: dict, fault_link: str, serv_path: dict, serv_matrix: dict):
+def fault_impact_statistics(net, link_status: dict, fault_link: str, fault_wavelength: int, serv_path: dict, serv_matrix: dict):
     """
     Count services affected after the fault.
 
     Args:
+        net: A instance of Network class.
         link_status: A dictionary of network link status.
         fault_link: A string of fault link.
+        fault_wavelength: An id of fault wavelength on the link
         serv_path: A dictionary of service path.
         serv_matrix: A dictionary of service matrix.
     
@@ -45,7 +49,7 @@ def fault_impact_statistics(link_status: dict, fault_link: str, serv_path: dict,
         impact_traffic: The list of affected traffic id.
     """
 
-    impact = link_status[fault_link][1:] # All service disruptions caused by fault
+    impact = link_status[fault_link][fault_wavelength] # All service disruptions caused by fault
 
     switch_serv = [] # Protection services to be switched
     interr_traffic = [] # Traffic disrupted by fault
@@ -60,27 +64,27 @@ def fault_impact_statistics(link_status: dict, fault_link: str, serv_path: dict,
 
     #print(switch_serv)
     # Statistics on the number of traffic affected by the protection service switching
-    backup_path_list = []
+    backup_link_list = []
     for sw_s_id in switch_serv:
         backup_path = serv_path[sw_s_id]['backup_path']
-        for j in range(len(backup_path) - 1):
-            l = str(backup_path[j])+'->'+str(backup_path[j + 1])
-            if l not in backup_path_list:
-                backup_path_list.append(l)
+        for j in range(len(backup_path[0])):
+            l = str(backup_path[0][j])
+            if l not in backup_link_list:
+                backup_link_list.append([l, backup_path[1]])
     # count = dict(Counter(backup_path_list))
     # multi_serv_link = [key for key, value in count.items() if value > 1]
     # print(backup_path_list)
     fail_serv = []
     impact_traffic = []
-    for bl in backup_path_list:
-        rest_bw = link_status[bl][0]
+    for bl in backup_link_list:
+        rest_bw = net.network_status[bl[0]][bl[1]]
         # print(rest_bw)
         total_serv_bw = 0
         total_traff_bw = 0
         traffic_list = []
         serv_list = []
 
-        for ls in link_status[bl][1:]:
+        for ls in link_status[bl[0]][bl[1]]:
             if ls[1] == 'backup_path':
                 if ls[0] in switch_serv:
                     serv_list.append(ls[0])
