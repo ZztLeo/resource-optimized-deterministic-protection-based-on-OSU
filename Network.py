@@ -15,7 +15,6 @@ import copy as cp
 class Network:
     def __init__(self):
         self.graph = None
-        self.graph_backup = None
         self.node_num = None
         self.link_num = None
         self.node_edge = None # node-edge relation ndarray
@@ -49,7 +48,7 @@ class Network:
             status_value.append(dict(zip(wl_key, wl_value)))
             status_value.append(dict(zip(wl_key, wl_value)))
         self.network_status = dict(zip(status_key, status_value))
-
+        # print(self.network_status)
         print('----->Bidirectional network initialization completed.\n', self.node_num,'nodes,', self.link_num, 'links,', self.wavelength_num, 'wavelengths of each link,', 'single-wavelength capacity:', self.link_capacity, '\n')
         
     def graph_remove_nodes(self, node_list):
@@ -59,10 +58,7 @@ class Network:
         Args:
             node_list: A list of nodes to remove.
         """
-        g_b = nx.Graph
-        g_b = cp.deepcopy(self.graph)
-        self.graph_backup = g_b
-        self.graph_backup.remove_nodes_from(node_list)
+        self.graph.remove_nodes_from(node_list)
 
     # draw the graph topology
     def graph_draw(self):
@@ -90,6 +86,11 @@ class Network:
             self.node_edge = origin_data[:, 1:(origin_data.shape[1])]
         else:
             raise FileNotFoundError
+    
+    def network_status_reset(self):
+        for key, value in self.network_status.items():
+            for waveid, _ in value.items():
+                self.network_status[key][waveid] = self.link_capacity
 
 # get the number of network nodes
 def get_node_num(node_edge) -> int:

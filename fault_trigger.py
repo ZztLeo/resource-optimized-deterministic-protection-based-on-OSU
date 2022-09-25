@@ -62,6 +62,7 @@ def fault_impact_statistics(net, link_status: dict, fault_link: str, fault_wavel
         elif im[1] == 'traffic_path':
             interr_traffic.append(im[0])
 
+
     #print(switch_serv)
     # Statistics on the number of traffic affected by the protection service switching
     backup_link_list = []
@@ -74,6 +75,7 @@ def fault_impact_statistics(net, link_status: dict, fault_link: str, fault_wavel
     # count = dict(Counter(backup_path_list))
     # multi_serv_link = [key for key, value in count.items() if value > 1]
     # print(backup_path_list)
+    
     fail_serv = []
     impact_traffic = []
     for bl in backup_link_list:
@@ -88,11 +90,11 @@ def fault_impact_statistics(net, link_status: dict, fault_link: str, fault_wavel
             if ls[1] == 'backup_path':
                 if ls[0] in switch_serv:
                     serv_list.append(ls[0])
-                    # print(S.serv_matrix[ls[0]])
-                    total_serv_bw = total_serv_bw + (serv_matrix[ls[0]][3] - 2)
+                    # print(S.serv_matrix[ls[0]])               
+                    total_serv_bw = total_serv_bw + (serv_matrix[ls[0]]['bw'] - 2)
             elif ls[1] == 'traffic_path':
                 traffic_list.append(ls[0])
-                total_traff_bw = total_traff_bw + serv_matrix[ls[0]][3]
+                total_traff_bw = total_traff_bw + serv_matrix[ls[0]]['bw']
             
         # print(total_serv_bw)
         if rest_bw < total_serv_bw:
