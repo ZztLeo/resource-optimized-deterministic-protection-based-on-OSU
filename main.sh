@@ -7,4 +7,4 @@ NetworkTopoFile='NSFNET.md'
 
 
 
-python main.py --file_prefix $NetworkTopoPath --topo_file $NetworkTopoFile --pro_service_num 15000 --traffic_num 12000 --fault_time 200
+python main.py --file_prefix $NetworkTopoPath --topo_file $NetworkTopoFile --pro_service_num 12000 --traffic_num 12000 --fault_time 200

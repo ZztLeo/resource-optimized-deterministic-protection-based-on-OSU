@@ -11,7 +11,7 @@ import networkx as nx
 from network import Network
 from service import Service
 
-def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, total_pro_bw: int, total_traffic_bw: int) ->dict:
+def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: int) ->dict:
     """
     KSP-based planning algorithm (baseline).
         
@@ -25,13 +25,23 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, total_
         serv_path: A dictionary of service path (key: service id, value :service path (dict)).
     """
     
-    print('----->KSP+FF-based baseline algorithm is planning services...')
     serv_path = dict()
     # Three formats of value in serv_path:
     # protected service: {'work_path': [work path, wavelength_id], 'backup_path': [backup path, wavelength_id]}
     # traffic: {'traffic_path': [traffic path, wavelength_id]}
     # block: {'block': []}
-    net.network_status_reset()
+    
+    
+    total_bw = 2 * net.link_num * net.link_capacity * net.wavelength_num
+
+    if flag == 1:
+        rest_bw_ = 0
+        for __, value in net.network_status.items():
+            for __, re_bw in value.items():
+                rest_bw_ = rest_bw_ + re_bw
+        
+    else:
+        net.network_status_reset()
     pro_serv_block_num = 0
     pro_block_bw = 0
     traffic_block_num = 0
@@ -58,38 +68,42 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, total_
         elif service['type'] == 'T':
             allo_flag, traffic_path, traffic_wave_id, _, _ = ksp_FF(service, net, k=3, flag=False)
             if allo_flag ==True:
-                serv_path[service['id']] = {'traffic_path': [traffic_path, traffic_wave_id]}
+                serv_path[service['id'] + pro_serv_num] = {'traffic_path': [traffic_path, traffic_wave_id]}
                 total_allo_traffic_bw = total_allo_traffic_bw + (service['bw'] * len(traffic_path))
             else:
-                serv_path[service['id']] = {'block': []}
+                serv_path[service['id'] + pro_serv_num] = {'block': []}
                 traffic_block_num = traffic_block_num + 1
+    
     pro_serv_block_rate = pro_serv_block_num / pro_serv_num
-    pro_block_bw_rate = pro_block_bw / total_pro_bw
-    #traffic_block_rate = traffic_block_num / traffic_num
-    traffic_block_rate = traffic_block_num / (pro_serv_num + traffic_num)
-    total_block_rate = (pro_serv_block_num + traffic_block_num) / (pro_serv_num + traffic_num)
-    print('----->The service deployment of KSP-based baseline algorithm is completed.')
-    print('Number of protected services blocked:', pro_serv_block_num, ', blocking rate:{:.2%}'.format(pro_serv_block_rate) , ', bandwidth blocking rate:{:.2%}'.format(pro_block_bw_rate), '\nNumber of traffic services blocked:', traffic_block_num, ', blocking rate:{:.2%}'.format(traffic_block_rate), '\nTotal blocking rate:{:.2%}'.format(total_block_rate))
-    # print(serv_path)
-    rest_bw = 0
-    key_num = 0
-    for _, value in net.network_status.items():
-        rest_bw = rest_bw + sum(value.values())
-        key_num = key_num + 1
-    total_bw = key_num * net.link_capacity * net.wavelength_num
-    resource_utilization_rate = (total_bw - rest_bw) / total_bw
 
+    traffic_block_rate = traffic_block_num /  traffic_num
+    total_block_rate = (pro_serv_block_num + traffic_block_num) / (pro_serv_num + traffic_num)
     
 
-    Proportion_of_redundant_resources = total_allo_pro_serv_bw / total_bw
-    print('The proportion of redundant resources:{:.2%}'.format(Proportion_of_redundant_resources))
+    if flag == 1:
+        print('Number of traffic services blocked:', traffic_block_num, ', blocking rate:{:.2%}'.format(traffic_block_rate), '\nTotal blocking rate:{:.2%}'.format(total_block_rate))
 
-    traffic_resource_utilization_rate = total_allo_traffic_bw / (total_bw - total_allo_pro_serv_bw)
-    print('Resource sharing rate of traffic:{:.2%}'.format(traffic_resource_utilization_rate), '\n')
-    #print(net.network_status)
-    print('Resource utilization rate of the whole network:{:.2%}'.format(resource_utilization_rate),'\n')
+        rest_bw = 0
+        key_num = 0
+        for _, value in net.network_status.items():
+            rest_bw = rest_bw + sum(value.values())
+            key_num = key_num + 1
 
-    return serv_path
+
+
+        resource_utilization_rate = (total_bw - rest_bw) / total_bw
+
+        traffic_resource_utilization_rate = (rest_bw_ - rest_bw) / rest_bw_
+        print('Resource sharing rate of traffic:{:.2%}'.format(traffic_resource_utilization_rate))
+
+        print('Resource utilization rate of the whole network:{:.2%}'.format(resource_utilization_rate),'\n')
+    else:
+        print('Number of protected services blocked:', pro_serv_block_num, ', blocking rate:{:.2%}'.format(pro_serv_block_rate))
+        Proportion_of_redundant_resources = total_allo_pro_serv_bw / total_bw
+        print('The proportion of redundant resources:{:.2%}'.format(Proportion_of_redundant_resources))
+
+
+    return serv_path, pro_serv_block_num
 
 def ksp_FF(single_serv, net, k, flag=True):
     """

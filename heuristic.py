@@ -11,12 +11,12 @@ from itertools import combinations
 
 
 
-def heuristic_pro(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, total_pro_bw: int):
-    print('----->heuristic algorithm is planning services...')
+def heuristic_pro(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int):
+
     serv_path = dict()
     key_num = 0
     #先规划受保护业务
-    pro_serv_list = serv_matrix[:pro_serv_num]
+    pro_serv_list = serv_matrix
     #pro_serv_list = ft.serv_sort(pro_serv_list)
     net.network_status_reset()
     #print(pro_serv_list)
@@ -43,12 +43,10 @@ def heuristic_pro(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, t
             pro_block_bw = pro_block_bw + pro_serv['bw']
     
     pro_block_num_rate = pro_block_num / pro_serv_num
-    pro_block_bw_rate = pro_block_bw / total_pro_bw
 
 
     #输出打印启发式算法结果
-    print('----->The service deployment of heuristic algorithm is completed.')
-    print('Number of protected services blocked:', pro_block_num, ', blocking rate:{:.2%}'.format(pro_block_num_rate), ', bandwidth blocking rate:{:.2%}'.format(pro_block_bw_rate))
+    print('Number of protected services blocked:', pro_block_num, ', blocking rate:{:.2%}'.format(pro_block_num_rate))
     key_num = 0
     remain_bw = 0
     for __, value in net.network_status.items():
@@ -140,54 +138,11 @@ def pro_serv_algorithm(net, pro_serv: dict, fake_network_status: dict):
 
     return 'block', [], []
 
-
-
-            
-    '''max_wave_bw, max_wave_id = get_max_wave(net.network_status, net.wavelength_num, wk_link_list)
-
-        if max_wave_bw >= pro_serv['bw']:
-            wk_avail_flag = True
-            work_path = [wk_link_list,max_wave_id]
-        else:
-            wk_avail_flag = False
-            continue
-            
-        if wk_avail_flag == True:
-            bp_candidate_path = []
-            bp_avail_flag = None
-            for bp_p in bp_k_path_list:
-                bp_link_list = ft.path_to_link(bp_p)
-                max_wave_bw, max_wave_id = get_max_wave(net.network_status, net.wavelength_num, bp_link_list)
-
-                if max_wave_bw >= pro_serv['bw']:
-                    bp_avail_flag = True
-                    bp_candidate_path = []
-                    bp_candidate_path.append([bp_link_list, max_wave_id])
-                    break
-                elif (max_wave_bw < pro_serv['bw']) & (max_wave_bw >= 2):
-                    bp_avail_flag = True
-                    bp_candidate_path.append([bp_link_list, max_wave_id])
-                    continue
-                elif max_wave_bw < 2:
-                    bp_avail_flag = False
-                    continue
-                
-            if bp_avail_flag == True:
-                serv_flag = 0
-                backup_path = bp_candidate_path[0]
-                break
-            elif bp_avail_flag == False:
-                continue
-
-    if serv_flag == None:
-        #print(work_path, backup_path)
-        return 'block', [], []
-    else:'''
-    return 'succeed', 0, 0
-
-def heuristic_tra(net, serv_matrix: dict, traffic_num: int, total_traffic_bw: int, link_status: dict, serv_path: dict, pro_block_num: int):
+def heuristic_tra(net, serv_matrix: dict, traffic_num: int, link_status: dict, serv_path: dict, pro_block_num: int):
 
     #规划流量业务
+    pro_serv_num = len(serv_matrix) - traffic_num
+
     traffic_list = serv_matrix[-traffic_num:]
     traffic_block_num = 0
     remain_bw = 0
@@ -200,7 +155,10 @@ def heuristic_tra(net, serv_matrix: dict, traffic_num: int, total_traffic_bw: in
     overlap_value_matrix = dict()
     overlap_value_matrix = caculate_overlap(net, serv_matrix, link_status, serv_path)
     
+
     for traffic in traffic_list:
+
+        
         src = traffic['src_dst'][0]
         dst = traffic['src_dst'][1]
         tra_path_list, __ = ft.k_shortest_paths(net.graph, src, dst, 3)
@@ -223,7 +181,7 @@ def heuristic_tra(net, serv_matrix: dict, traffic_num: int, total_traffic_bw: in
                         break
                 if flag != 'unavailable':
                     res_flag = 'available'
-                    candidate_wave_set.append([wave_id,max_overlap])
+                    candidate_wave_set.append([wave_id,max_overlap])    
             if res_flag != None:
             
                 min_overlap = 100000
@@ -235,7 +193,7 @@ def heuristic_tra(net, serv_matrix: dict, traffic_num: int, total_traffic_bw: in
                 candidate_tra_path.append([tp, min_wave, min_overlap])
 
         if candidate_tra_path == []:
-            serv_path[traffic['id']] = {'block': []}
+            serv_path[traffic['id'] + pro_serv_num] = {'block': []}
             traffic_block_num = traffic_block_num + 1
         else:
             total_min_overlap = 100000
@@ -249,7 +207,7 @@ def heuristic_tra(net, serv_matrix: dict, traffic_num: int, total_traffic_bw: in
                 overlap_value_matrix[link][ava_path[1]] = overlap_value_matrix[link][ava_path[1]] * net.network_status[link][ava_path[1]]
                 net.network_status[link][ava_path[1]] = net.network_status[link][ava_path[1]] - traffic['bw']
                 overlap_value_matrix[link][ava_path[1]] =  overlap_value_matrix[link][ava_path[1]] / net.network_status[link][ava_path[1]] #overlap度更新
-            serv_path[traffic['id']] = {'traffic_path': [ava_path[0], ava_path[1]]}
+            serv_path[traffic['id'] + pro_serv_num] = {'traffic_path': [ava_path[0], ava_path[1]]}
     
     key_num = 0
     for __, value in net.network_status.items():
@@ -281,10 +239,13 @@ def caculate_overlap(net, serv_matrix:dict, link_status: dict, serv_path: list):
     flag = 0
     link_key_set = []
     overlap_value_set = []
+
     for link_key, link_value in link_status.items():
+
         wavelength_key_set = []
         max_overlap_value_set = []
         for wavelength_key, wavelength_value in link_value.items():
+
             temp_list = [] #统计该链路该波长上的备份路径的业务
             max_overlap_value = 0
 
@@ -301,16 +262,22 @@ def caculate_overlap(net, serv_matrix:dict, link_status: dict, serv_path: list):
             delete = []
 
             for t_w in temp_wave:
+                
                 if t_w not in delete:
                     if temp_wave.count(t_w) > 1:
+                        
                         delete.append(t_w)
                         wave_index_list = [a for a, b in enumerate(temp_wave) if b == t_w]
+                        
                         wk_path = [temp_wk_path[i] for i in wave_index_list]
+                        #print(wk_path)
                         result = intersection(wk_path)
+
                         if result != []:
                             flag = flag + 1
                             middle_overlap_value = 0
                             for rl in result:
+
                                 overlap_length = len(rl[0])
                                 sumbw = 0
                                 for sid in rl[1]:
@@ -331,16 +298,18 @@ def caculate_overlap(net, serv_matrix:dict, link_status: dict, serv_path: list):
 
 
 
-def intersection(big_list):               #排列组合，寻找重叠的工作路径/列表嵌套列表，找内部列表中相同的元素。
+def intersection(big_list):          #排列组合，寻找重叠的工作路径/列表嵌套列表，找内部列表中相同的元素。
     index = []
     for i in range(len(big_list)):
         index.append(i)
-    
+
     res_list = []
     for i in range(len(index) + 1):
+
         res_list += list(combinations(index, i))
+
     all_cb = res_list[len(big_list)+1:]
-    #print(all_cb)
+    
     result = []
     for cb in all_cb:
         A_id = []
@@ -356,7 +325,7 @@ def intersection(big_list):               #排列组合，寻找重叠的工作�
                 A_id.append(big_list[j+1][0])
             else:
                 if A != set():
-                    #print(A)
+
                     result.append([list(A),A_id])
     
     return result
