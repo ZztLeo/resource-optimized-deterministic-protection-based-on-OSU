@@ -304,8 +304,9 @@ def intersection(big_list):          #排列组合，寻找重叠的工作路径
         index.append(i)
 
     res_list = []
+    print(len(index))
     for i in range(len(index) + 1):
-
+        print(i)
         res_list += list(combinations(index, i))
 
     all_cb = res_list[len(big_list)+1:]

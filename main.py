@@ -37,7 +37,7 @@ def simulation():
     serv_matrix_pro = serv.serv_matrix[:pro_serv_num]
     serv_matrix_tra = serv.serv_matrix[-traffic_num:]
 
-    # ksp + ksp
+    '''# ksp + ksp
     print('----->KSP+KSP algorithm is planning services...')
     serv_path_kk = dict()
     serv_path_kk_ = dict()
@@ -49,7 +49,7 @@ def simulation():
     link_status_kk = dict()
     link_status_kk = fc.link_status_statistics(net, serv_path_kk)
 
-    net_kk = cp.deepcopy(net)
+    net_kk = cp.deepcopy(net)'''
     
     
     # ksp + TPA-ORA
