@@ -299,18 +299,24 @@ def caculate_overlap(net, serv_matrix:dict, link_status: dict, serv_path: list):
 
 
 def intersection(big_list):          #排列组合，寻找重叠的工作路径/列表嵌套列表，找内部列表中相同的元素。
+    if len(big_list) >= 17:
+        big_list = big_list[:17]
+    
     index = []
     for i in range(len(big_list)):
         index.append(i)
 
+    #print(len(big_list))
     res_list = []
-    print(len(index))
+
     for i in range(len(index) + 1):
-        print(i)
+        
         res_list += list(combinations(index, i))
+        #print(res_list)
 
     all_cb = res_list[len(big_list)+1:]
-    
+    #print(all_cb)
+
     result = []
     for cb in all_cb:
         A_id = []

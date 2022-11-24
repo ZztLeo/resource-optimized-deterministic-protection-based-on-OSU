@@ -101,6 +101,12 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: 
         print('Number of protected services blocked:', pro_serv_block_num, ', blocking rate:{:.2%}'.format(pro_serv_block_rate))
         Proportion_of_redundant_resources = total_allo_pro_serv_bw / total_bw
         print('The proportion of redundant resources:{:.2%}'.format(Proportion_of_redundant_resources))
+        rest_bw_ = 0
+        for __, value in net.network_status.items():
+            for __, re_bw in value.items():
+                rest_bw_ = rest_bw_ + re_bw
+        resource_utilization_rate = (total_bw - rest_bw_) / total_bw
+        print('Resource utilization rate of protected services:{:.2%}\n'.format(resource_utilization_rate))
 
 
     return serv_path, pro_serv_block_num

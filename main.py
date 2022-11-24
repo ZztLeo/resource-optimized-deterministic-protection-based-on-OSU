@@ -37,63 +37,63 @@ def simulation():
     serv_matrix_pro = serv.serv_matrix[:pro_serv_num]
     serv_matrix_tra = serv.serv_matrix[-traffic_num:]
 
-    '''# ksp + ksp
+    # ksp + ksp
     print('----->KSP+KSP algorithm is planning services...')
-    serv_path_kk = dict()
-    serv_path_kk_ = dict()
+
+
     serv_path_kk, _ = bl.baseline(net, serv_matrix_pro, pro_serv_num, traffic_num, 0)
     serv_path_kk_, _ = bl.baseline(net, serv_matrix_tra, pro_serv_num, traffic_num, 1)
 
     serv_path_kk.update(serv_path_kk_)
     
-    link_status_kk = dict()
+
     link_status_kk = fc.link_status_statistics(net, serv_path_kk)
 
-    net_kk = cp.deepcopy(net)'''
+    net_kk = cp.deepcopy(net)
     
     
     # ksp + TPA-ORA
     print('----->KSP+TPA-ORA algorithm is planning services...')
-    serv_path_kt = dict()
+    
     serv_path_kt, pro_block_num_kt = bl.baseline(net, serv_matrix_pro, pro_serv_num, traffic_num, 0)
 
-    link_status_kt = dict()
+    
     link_status_kt = fc.link_status_statistics(net, serv_path_kt)
 
 
     serv_path_kt = hr.heuristic_tra(net, serv.serv_matrix, traffic_num, link_status_kt, serv_path_kt, pro_block_num_kt)
 
-    link_status_kt = dict()
+
     link_status_kt = fc.link_status_statistics(net, serv_path_kt)
 
     net_kt = cp.deepcopy(net)
 
     # DPA + ksp
     print('----->DPA+ksp algorithm is planning services...')
-    serv_path_dk = dict()
+
     serv_path_dk, _ = hr.heuristic_pro(net, serv_matrix_pro, pro_serv_num, traffic_num)
 
     serv_path_dk_, _ = bl.baseline(net, serv_matrix_tra, pro_serv_num, traffic_num, 1)
 
     serv_path_dk.update(serv_path_dk_)
 
-    link_status_dk = dict()
+
     link_status_dk = fc.link_status_statistics(net, serv_path_dk)
     net_dk = cp.deepcopy(net)
 
 
     # DPA + TPA-ORA
     print('----->DPA+TPA-ORA algorithm is planning services...')
-    serv_path_dt = dict()
+
     serv_path_dt, pro_block_num_dt = hr.heuristic_pro(net, serv_matrix_pro, pro_serv_num, traffic_num)
     # print(serv_path_dt)
-    link_status_dt = dict()
+
     link_status_dt = fc.link_status_statistics(net, serv_path_dt)
     
     #print(link_status_he)
     serv_path_dt = hr.heuristic_tra(net, serv.serv_matrix, traffic_num, link_status_dt, serv_path_dt, pro_block_num_dt)
     #print(serv_path_dt)
-    link_status_dt = dict()
+
     link_status_dt = fc.link_status_statistics(net, serv_path_dt)
     net_dt = cp.deepcopy(net)
 
