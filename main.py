@@ -8,8 +8,11 @@
 import function as fc
 import fault_trigger as Ft
 import base_line as bl
-import heuristic as hr
+import heuristic as he
+
 import copy as cp
+import exclusive as ec
+import shared as sh
 
 from network import Network
 from service import Service
@@ -23,6 +26,8 @@ def simulation():
     pro_serv_num = args.pro_service_num
     traffic_num = args.traffic_num
     fault_time = args.fault_time
+    fault_type = args.fault_type
+    N = args.N
 
     print('----->Start Simulation...')
     net = Network()
@@ -35,123 +40,149 @@ def simulation():
     serv.service_init(net, pro_serv_num, traffic_num)
 
     serv_matrix_pro = serv.serv_matrix[:pro_serv_num]
-    serv_matrix_tra = serv.serv_matrix[-traffic_num:]
 
-    # ksp + ksp
-    print('----->KSP+KSP algorithm is planning services...')
-
-
-    serv_path_kk, _ = bl.baseline(net, serv_matrix_pro, pro_serv_num, traffic_num, 0)
-    serv_path_kk_, _ = bl.baseline(net, serv_matrix_tra, pro_serv_num, traffic_num, 1)
-
-    serv_path_kk.update(serv_path_kk_)
-    
-
-    link_status_kk = fc.link_status_statistics(net, serv_path_kk)
-
-    net_kk = cp.deepcopy(net)
-    
-    
-    # ksp + TPA-ORA
-    print('----->KSP+TPA-ORA algorithm is planning services...')
-    
-    serv_path_kt, pro_block_num_kt = bl.baseline(net, serv_matrix_pro, pro_serv_num, traffic_num, 0)
+    serv_matrix_tra = serv.serv_matrix[pro_serv_num + 1:]
 
     
-    link_status_kt = fc.link_status_statistics(net, serv_path_kt)
+    # OSU-P with heuristic
+
+    print('----->OSU-P is working...')
+    serv_path_1, total_allo_pro_serv_bw, pro_block_num_1 = he.heuristic_pro(net, serv_matrix_pro, fault_type, N, pro_serv_num, traffic_num)
+
+    serv_path_1_, _, _, shared_list_1 = bl.baseline(net, serv, serv_path_1, serv_matrix_tra, N, fault_type, pro_serv_num, traffic_num, total_allo_pro_serv_bw, pro_block_num_1, 1, True)
+    #print(len(shared_list_1))
+    link_status_1 = fc.link_status_statistics(net, serv_path_1_)
+    net_osu_p = cp.deepcopy(net)
 
 
-    serv_path_kt = hr.heuristic_tra(net, serv.serv_matrix, traffic_num, link_status_kt, serv_path_kt, pro_block_num_kt)
+    # OSU-P with heuristic for preempted traffic
+
+    print('----->OSU-P_PTP is working...')
+    serv_path_4, total_allo_pro_serv_bw, pro_block_num_4 = he.heuristic_pro(net, serv_matrix_pro, fault_type, N, pro_serv_num, traffic_num)
+    link_status_4 = fc.link_status_statistics(net, serv_path_4)
+
+    serv_path_4_, shared_list_4 = he.heuristic_tra(net, serv, serv_path_4, link_status_4, serv_matrix_tra, pro_serv_num, traffic_num, total_allo_pro_serv_bw, pro_block_num_4, True)
+    link_status_4_ = fc.link_status_statistics(net, serv_path_4_)
+    net_osu_p_ptp = cp.deepcopy(net)
+
+    # 1+1 SNCP
+    print('----->1+1 SNCP is working...')
+
+    serv_path_2, total_allo_pro_serv_bw, pro_block_num_2 = ec.heuristic_pro(net, serv_matrix_pro, fault_type, pro_serv_num)
+    serv_path_2_, _, _, _ = bl.baseline(net, serv, serv_path_2, serv_matrix_tra, N, fault_type, pro_serv_num, traffic_num, total_allo_pro_serv_bw, pro_block_num_2, 1, False)
+
+    link_status_2 = fc.link_status_statistics(net, serv_path_2_)
+
+    net_1plus1 = cp.deepcopy(net)
 
 
-    link_status_kt = fc.link_status_statistics(net, serv_path_kt)
-
-    net_kt = cp.deepcopy(net)
-
-    # DPA + ksp
-    print('----->DPA+ksp algorithm is planning services...')
-
-    serv_path_dk, _ = hr.heuristic_pro(net, serv_matrix_pro, pro_serv_num, traffic_num)
-
-    serv_path_dk_, _ = bl.baseline(net, serv_matrix_tra, pro_serv_num, traffic_num, 1)
-
-    serv_path_dk.update(serv_path_dk_)
+    # 1:1 SNCP
+    print('----->1:1 SNCP is working...')
+    serv_path_3, total_allo_pro_serv_bw, pro_block_num_3 = sh.heuristic_pro(net, serv_matrix_pro, fault_type, pro_serv_num)
+    serv_path_3_, _, _, shared_list_3 = bl.baseline(net, serv, serv_path_3, serv_matrix_tra, N, fault_type, pro_serv_num, traffic_num, total_allo_pro_serv_bw, pro_block_num_3, 1, True)
 
 
-    link_status_dk = fc.link_status_statistics(net, serv_path_dk)
-    net_dk = cp.deepcopy(net)
+    link_status_3 = fc.link_status_statistics(net, serv_path_3_)
+
+    net_1to1 = cp.deepcopy(net)
 
 
-    # DPA + TPA-ORA
-    print('----->DPA+TPA-ORA algorithm is planning services...')
+    total_fail_num_1 = 0
+    total_impact_num_1 = 0
+    total_num_swtich_1 = 0
 
-    serv_path_dt, pro_block_num_dt = hr.heuristic_pro(net, serv_matrix_pro, pro_serv_num, traffic_num)
-    # print(serv_path_dt)
+    total_fail_num_2 = 0
+    total_impact_num_2 = 0
+    total_num_swtich_2 = 0
 
-    link_status_dt = fc.link_status_statistics(net, serv_path_dt)
-    
-    #print(link_status_he)
-    serv_path_dt = hr.heuristic_tra(net, serv.serv_matrix, traffic_num, link_status_dt, serv_path_dt, pro_block_num_dt)
-    #print(serv_path_dt)
+    total_fail_num_3 = 0
+    total_impact_num_3 = 0
+    total_num_swtich_3 = 0
 
-    link_status_dt = fc.link_status_statistics(net, serv_path_dt)
-    net_dt = cp.deepcopy(net)
-
-    total_fail_num_kk = 0
-    total_impact_num_kk = 0
-    total_fail_num_kt = 0
-    total_impact_num_kt = 0
-    total_fail_num_dk = 0
-    total_impact_num_dk = 0
-    total_fail_num_dt = 0
-    total_impact_num_dt = 0
+    total_fail_num_4 = 0
+    total_impact_num_4 = 0
+    total_num_swtich_4 = 0
 
 
-    print('----->Randomly trigger a single-port fault %d times...'%fault_time)
+    print('----->Randomly trigger a single-%s, fault %d times...' %(fault_type, fault_time))
     for _ in range(fault_time):
+        #print(x)
+        fault_point = Ft.random_fault(net, fault_type)
         
-        fault_link, fault_wavelength = Ft.random_fault(net)
+        fail_serv_1, impact_traffic_1, num_switch_1 = Ft.fault_impact_statistics(net_osu_p, link_status_1, fault_point, serv_path_1, serv.serv_matrix, shared_list_1)
+
+        fail_serv_2, impact_traffic_2, num_switch_2 = Ft.fault_impact_statistics(net_1plus1, link_status_2, fault_point, serv_path_2, serv.serv_matrix, {})
+
+        fail_serv_3, impact_traffic_3, num_switch_3 = Ft.fault_impact_statistics(net_1to1, link_status_3, fault_point, serv_path_3, serv.serv_matrix, shared_list_3)
+
+        fail_serv_4, impact_traffic_4, num_switch_4 = Ft.fault_impact_statistics(net_osu_p_ptp, link_status_4_, fault_point, serv_path_4_, serv.serv_matrix, shared_list_4)
+
+
+        total_fail_num_1 = total_fail_num_1 + len(fail_serv_1)
+        total_fail_num_2 = total_fail_num_2 + len(fail_serv_2)
+        total_fail_num_3 = total_fail_num_3 + len(fail_serv_3)
+        total_fail_num_4 = total_fail_num_4 + len(fail_serv_4)
+
         
-        fail_serv_kk, impact_traffic_kk = Ft.fault_impact_statistics(net_kk, link_status_kk, fault_link, fault_wavelength, serv_path_kk, serv.serv_matrix)
-
-        fail_serv_kt, impact_traffic_kt = Ft.fault_impact_statistics(net_kt, link_status_kt, fault_link, fault_wavelength, serv_path_kt, serv.serv_matrix)
-
-        fail_serv_dk, impact_traffic_dk = Ft.fault_impact_statistics(net_dk, link_status_dk, fault_link, fault_wavelength, serv_path_dk, serv.serv_matrix)
+        total_impact_num_1 = total_impact_num_1 + len(impact_traffic_1)
+        total_impact_num_2 = total_impact_num_2 + len(impact_traffic_2)
+        total_impact_num_3 = total_impact_num_3 + len(impact_traffic_3)
+        total_impact_num_4 = total_impact_num_4 + len(impact_traffic_4)
         
-        fail_serv_dt, impact_traffic_dt = Ft.fault_impact_statistics(net_dt, link_status_dt, fault_link, fault_wavelength, serv_path_dt, serv.serv_matrix)
+        total_num_swtich_1 = total_num_swtich_1 + num_switch_1
+        total_num_swtich_2 = total_num_swtich_2 + num_switch_2
+        total_num_swtich_3 = total_num_swtich_3 + num_switch_3
+        total_num_swtich_4 = total_num_swtich_4 + num_switch_4
+      
+
+    avg_fail_num_1 = total_fail_num_1 / fault_time
+    avg_impact_num_1 = total_impact_num_1 / fault_time
+    avg_switch_1 = total_num_swtich_1 / fault_time
+
+    avg_fail_num_2 = total_fail_num_2 / fault_time
+    avg_impact_num_2 = total_impact_num_2 / fault_time
+    avg_switch_2 = total_num_swtich_2 / fault_time
+
+    avg_fail_num_3 = total_fail_num_3 / fault_time
+    avg_impact_num_3 = total_impact_num_3 / fault_time
+    avg_switch_3 = total_num_swtich_3 / fault_time
+
+    avg_fail_num_4 = total_fail_num_4 / fault_time
+    avg_impact_num_4 = total_impact_num_4 / fault_time
+    avg_switch_4 = total_num_swtich_4 / fault_time
+
+    try:
+        per_unsuc_1 = avg_fail_num_1 / avg_switch_1
+    except Exception as e:
+        per_unsuc_1 = 0
+    try:
+        per_unsuc_2 = avg_fail_num_2 / avg_switch_2
+    except Exception as e:
+        per_unsuc_2 = 0
+    try:
+        per_unsuc_3 = avg_fail_num_3 / avg_switch_3
+    except Exception as e:
+        per_unsuc_3 = 0
+    try:
+        per_unsuc_4 = avg_fail_num_4 / avg_switch_4
+    except Exception as e:
+        per_unsuc_4 = 0
 
 
-        total_fail_num_kk = total_fail_num_kk + len(fail_serv_kk)
-        total_fail_num_kt = total_fail_num_kt + len(fail_serv_kt)
-        total_fail_num_dk = total_fail_num_dk + len(fail_serv_dk)
-        total_fail_num_dt = total_fail_num_dt + len(fail_serv_dt)
-        
-        total_impact_num_kk = total_impact_num_kk + len(impact_traffic_kk)
-        total_impact_num_kt = total_impact_num_kt + len(impact_traffic_kt)
-        total_impact_num_dk = total_impact_num_dk + len(impact_traffic_dk)
-        total_impact_num_dt = total_impact_num_dt + len(impact_traffic_dt)
-        
-        # print('----->第%d次故障\n导致%d条受保护业务倒换失败，'%(i+1, len(fail_serv)),'业务id为：', fail_serv, '；导致%d条流量受到影响，'%(len(impact_traffic)),'流量id为：', impact_traffic)
+    print('----->OSU-P: after %d faults, the average %.2f protected services need to be switched, average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), percentage of unsuccessful protection is %.2f, average %.2f traffic are affected'%(fault_time, avg_switch_1, avg_fail_num_1, per_unsuc_1, avg_impact_num_1))
 
-    avg_fail_num_kk = total_fail_num_kk / fault_time
-    avg_impact_num_kk = total_impact_num_kk / fault_time
+    print('----->1+1 SNCP: after %d faults, the average %.2f protected services need to be switched, average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), percentage of unsuccessful protection is %.2f, average %.2f traffic are affected'%(fault_time, avg_switch_2, avg_fail_num_2, per_unsuc_2, avg_impact_num_2))
 
-    avg_fail_num_kt = total_fail_num_kt / fault_time
-    avg_impact_num_kt = total_impact_num_kt / fault_time
+    print('----->1:1 SNCP: after %d faults, the average %.2f protected services need to be switched, average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), percentage of unsuccessful protection is %.2f, average %.2f traffic are affected'%(fault_time, avg_switch_3, avg_fail_num_3, per_unsuc_3, avg_impact_num_3))
 
-    avg_fail_num_dk = total_fail_num_dk / fault_time
-    avg_impact_num_dk = total_impact_num_dk / fault_time
+    print('----->OSU-P_PTP: after %d faults, the average %.2f protected services need to be switched, average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), percentage of unsuccessful protection is %.2f, average %.2f traffic are affected'%(fault_time, avg_switch_4, avg_fail_num_4, per_unsuc_4, avg_impact_num_4))
 
-    avg_fail_num_dt = total_fail_num_dt / fault_time
-    avg_impact_num_dt = total_impact_num_dt / fault_time
 
-    print('----->ksp+ksp: after %d faults, the average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), average %.2f traffic are affected'%(fault_time, avg_fail_num_kk, avg_impact_num_kk))
-
-    print('----->ksp+TPA-ORA: after %d faults, the average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), average %.2f traffic are affected'%(fault_time, avg_fail_num_kt, avg_impact_num_kt))
+    '''print('----->ksp+TPA-ORA: after %d faults, the average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), average %.2f traffic are affected'%(fault_time, avg_fail_num_kt, avg_impact_num_kt))
 
     print('----->DPA+ksp: after %d faults, the average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), average %.2f traffic are affected'%(fault_time, avg_fail_num_dk, avg_impact_num_dk))
 
-    print('----->DPA+TPA-ORA: after %d faults, the average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), average %.2f traffic are affected'%(fault_time, avg_fail_num_dt, avg_impact_num_dt))
+    print('----->DPA+TPA-ORA: after %d faults, the average %.2f protected services fail to switch due to insufficient resources (even if all traffic bandwidth is preempted), average %.2f traffic are affected'%(fault_time, avg_fail_num_dt, avg_impact_num_dt))'''
 
 
 

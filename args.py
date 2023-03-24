@@ -13,7 +13,10 @@ parser.add_argument('--file_prefix', type=str , default = 'resource', metavar='P
 parser.add_argument('--topo_file', type=str , default = 'NSFNET.md', metavar='PATH', help='network topology file name')
 parser.add_argument('--pro_service_num', type=int, help='number of protected services')
 parser.add_argument('--traffic_num', type=int, help='number of traffic')
+parser.add_argument('--fault_type', type=str, default = 'link', help='type of fault')
 parser.add_argument('--fault_time', type=int, help='times of fault')
+parser.add_argument('--N', type=float, default = 0, help='N times of 2Mbps for backup under OSU_P')
+
 
 
 

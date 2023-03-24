@@ -40,7 +40,7 @@ class Service:
         traffic = []
         #total_service = []
         pro_service, self.total_pro_bw = generate_pro_service(net, self.serv_proportion, pro_serv_num)
-        traffic, self.total_traffic_bw = generate_unpro_service(net, self.serv_proportion, traffic_num)
+        traffic, self.total_traffic_bw = generate_unpro_service(net, self.serv_proportion, pro_serv_num, traffic_num)
         #total_service = pro_service + traffic #a attribute list of all services
 
         #Construct a service matrix dictionary
@@ -51,7 +51,7 @@ class Service:
         self.serv_matrix = pro_service + traffic
         #print(self.serv_matrix)
 
-        print('----->The service initialization is completed.\nTotal number of service:', self.pro_serv_num + self.traffic_num,', number of protected services:', self.pro_serv_num, ', number of other traffic:', self.traffic_num, '\n')
+        print('----->The service initialization is completed.\nTotal number of services:', self.pro_serv_num + self.traffic_num,', number of protected services:', self.pro_serv_num, ', number of other traffic:', self.traffic_num, '\n')
 
 def generate_pro_service(net, serv_prop: dict, pro_serv_num: int) -> list:
     """
@@ -90,7 +90,7 @@ def generate_pro_service(net, serv_prop: dict, pro_serv_num: int) -> list:
     
     return pro_serv_list, total_pro_bw
 
-def generate_unpro_service(net, serv_prop: dict, traffic_num: int) -> list:
+def generate_unpro_service(net, serv_prop: dict, pro_serv_num: int, traffic_num: int) -> list:
     """
         Generate protected servicesrandomly.
 
@@ -120,7 +120,7 @@ def generate_unpro_service(net, serv_prop: dict, traffic_num: int) -> list:
         rand_dst = random.randint(1,net.node_num)
         while(rand_src == rand_dst):
             rand_dst = random.randint(1,net.node_num)
-        single_traffic = {'id': i, 'type': 'T', 'src_dst': [rand_src, rand_dst], 'bw': serv_band[i], 'reli': 0}
+        single_traffic = {'id': i + pro_serv_num, 'type': 'T', 'src_dst': [rand_src, rand_dst], 'bw': serv_band[i], 'reli': 0}
         #single_traffic = ['T', rand_src, rand_dst, serv_band[i], 0]
         traffic_list.append(single_traffic)
     

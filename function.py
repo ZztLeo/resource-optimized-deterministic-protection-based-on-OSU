@@ -32,13 +32,17 @@ def link_status_statistics(net, serv_path: dict) -> dict:
         for key, value in s_p.items():
             if key == 'block':
                 break
-            else: 
-                for j in range(len(value[0])):
-                    link_key = str(value[0][j])
-                    link_serv = [serv_id, key]
-                    curr_list = link_status[link_key][value[1]]
-                    curr_list.append(link_serv)
-                    link_status[link_key][value[1]] = curr_list
+            elif key == 'shared_path': 
+                real_value = serv_path[value]['backup_path']
+            else:
+                real_value = value
+
+            for j in range(len(real_value[0])):
+                link_key = str(real_value[0][j])
+                link_serv = [serv_id, key, real_value[2]]
+                curr_list = link_status[link_key][real_value[1]]
+                curr_list.append(link_serv)
+                link_status[link_key][real_value[1]] = curr_list
     
     return link_status
     # key: link string (A->B)

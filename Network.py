@@ -19,7 +19,7 @@ class Network:
         self.link_num = None
         self.node_edge = None # node-edge relation ndarray
         self.link_capacity = 100000 # 100Gbps of each wavelength
-        self.wavelength_num = 40 # 40 wavelength of each link
+        self.wavelength_num = 16 # 40 wavelength of each link
         self.network_status = dict() 
         # {A->B: {wavelength1: bandwidth, wavelength2: bandwidth, wavelength3: bandwidth...}...}
 
@@ -62,11 +62,11 @@ class Network:
 
     # draw the graph topology
     def graph_draw(self):
-        pos = nx.spring_layout(self.G) # choose a layout from https://networkx.github.io/documentation/latest/reference/drawing.html#module-networkx.drawing.layout
-        weights = nx.get_edge_attributes(self.G, 'weight')
-        nx.draw(self.G, pos, with_labels=True)
-        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=weights)
-        plt.savefig('./topo.png')
+        pos = nx.spring_layout(self.graph) # choose a layout from https://networkx.github.io/documentation/latest/reference/drawing.html#module-networkx.drawing.layout
+        weights = nx.get_edge_attributes(self.graph, 'weight')
+        nx.draw(self.graph, pos, with_labels=True)
+        nx.draw_networkx_edge_labels(self.graph, pos, edge_labels=weights)
+        plt.savefig('./topo1.png')
 
     def graph_read(self, file_prefix: str, topo_file: str):
         """
@@ -110,6 +110,6 @@ def get_link_num(node_edge) -> int:
 # main function
 if __name__ == '__main__':
     g = Network()
-    g.graph_read('NSFNET.md')
+    g.graph_read('resource', 'NSFNET.md')
     g.graph_init()
     g.graph_draw()

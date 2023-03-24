@@ -11,7 +11,8 @@ import networkx as nx
 from network import Network
 from service import Service
 
-def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: int) ->dict:
+def baseline(net, serv, serv_path, serv_matrix: dict, N: int, fault_type: str, pro_serv_num: int, traffic_num: int, total_allo_pro_serv_bw: int, pro_serv_block_num: int, flag: int, is_share) ->dict:
+
     """
     KSP-based planning algorithm (baseline).
         
@@ -25,13 +26,11 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: 
         serv_path: A dictionary of service path (key: service id, value :service path (dict)).
     """
     
-    serv_path = dict()
     # Three formats of value in serv_path:
     # protected service: {'work_path': [work path, wavelength_id], 'backup_path': [backup path, wavelength_id]}
     # traffic: {'traffic_path': [traffic path, wavelength_id]}
     # block: {'block': []}
-    
-    
+
     total_bw = 2 * net.link_num * net.link_capacity * net.wavelength_num
 
     if flag == 1:
@@ -41,24 +40,33 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: 
                 rest_bw_ = rest_bw_ + re_bw
         
     else:
+        total_allo_pro_serv_bw = 0
+        pro_serv_block_num = 0
+        serv_path = dict()
         net.network_status_reset()
-    pro_serv_block_num = 0
+    
     pro_block_bw = 0
     traffic_block_num = 0
-    total_allo_pro_serv_bw = 0
     total_allo_traffic_bw = 0
-    
+    id_set = []
+    shared_list = dict()
     # Service planning
     for service in serv_matrix:
-        
+        bias = None
         if service['type'] == 'P':
+            if N == 0:
+                bias = 2
+            else:
+                if service['bw'] != 2:
+                    bias = N * service['bw']
+                else:
+                    bias = 2
             # Allocate work path for protection services
-            allo_flag, work_path, work_wave_id, backup_path, backup_wave_id, = ksp_FF(service, net, k=3, flag=True)
-        
+            allo_flag, work_path, work_wave_id, backup_path, backup_wave_id, _ = ksp_FF(id_set, fault_type, serv, serv_path, pro_serv_num, service, net, bias, is_share, k=3, flag=True)
         
             if allo_flag == True:
-                serv_path[service['id']] = {'work_path': [work_path, work_wave_id], 'backup_path': [backup_path, backup_wave_id]}
-                total_allo_pro_serv_bw = total_allo_pro_serv_bw + (2 * len(backup_path))
+                serv_path[service['id']] = {'work_path': [work_path, work_wave_id, service['bw']], 'backup_path': [backup_path, backup_wave_id, bias]}
+                total_allo_pro_serv_bw = total_allo_pro_serv_bw + (bias * len(backup_path))
                 
             else:
                 serv_path[service['id']] = {'block': []}
@@ -66,22 +74,44 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: 
                 pro_block_bw = pro_block_bw + service['bw']
 
         elif service['type'] == 'T':
-            allo_flag, traffic_path, traffic_wave_id, _, _ = ksp_FF(service, net, k=3, flag=False)
-            if allo_flag ==True:
-                serv_path[service['id'] + pro_serv_num] = {'traffic_path': [traffic_path, traffic_wave_id]}
-                total_allo_traffic_bw = total_allo_traffic_bw + (service['bw'] * len(traffic_path))
-            else:
-                serv_path[service['id'] + pro_serv_num] = {'block': []}
-                traffic_block_num = traffic_block_num + 1
+            if is_share == True:
+                allo_flag, traffic_path, traffic_wave_id, _, _, id = ksp_FF(id_set, fault_type, serv, serv_path, pro_serv_num, service, net, bias, is_share, k=3, flag=False)
+                #print(len(id_set))
+                if allo_flag ==True:
+                    if id != None:
+                        id_set.append(id)
+                        shared_list[id] = service['id']
+                        serv_path[service['id']] = {'shared_path': id}
+                        total_allo_pro_serv_bw = total_allo_pro_serv_bw - (service['bw'] * (len(traffic_path)))
+
+                    else:
+                        serv_path[service['id']] = {'traffic_path': [traffic_path, traffic_wave_id, service['bw']]}
+                else:
+                    serv_path[service['id']] = {'block': []}
+                    traffic_block_num = traffic_block_num + 1
+            else:    
+                allo_flag, traffic_path, traffic_wave_id, _, _, _ = ksp_FF(id_set, fault_type, serv, serv_path, pro_serv_num, service, net, bias, is_share, k=3, flag=False)
+                if allo_flag ==True:
+                    serv_path[service['id']] = {'traffic_path': [traffic_path, traffic_wave_id, service['bw']]}
+                    total_allo_traffic_bw = total_allo_traffic_bw + (service['bw'] * len(traffic_path))
+                else:
+                    serv_path[service['id']] = {'block': []}
+                    traffic_block_num = traffic_block_num + 1
     
     pro_serv_block_rate = pro_serv_block_num / pro_serv_num
 
-    traffic_block_rate = traffic_block_num /  traffic_num
+    try:
+        traffic_block_rate = traffic_block_num /  traffic_num
+    except Exception as e:
+        traffic_block_rate = 0
+    
     total_block_rate = (pro_serv_block_num + traffic_block_num) / (pro_serv_num + traffic_num)
     
 
     if flag == 1:
         print('Number of traffic services blocked:', traffic_block_num, ', blocking rate:{:.2%}'.format(traffic_block_rate), '\nTotal blocking rate:{:.2%}'.format(total_block_rate))
+        Proportion_of_redundant_resources = total_allo_pro_serv_bw / total_bw
+        print('The proportion of redundant resources:{:.2%}'.format(Proportion_of_redundant_resources))
 
         rest_bw = 0
         key_num = 0
@@ -99,8 +129,7 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: 
         print('Resource utilization rate of the whole network:{:.2%}'.format(resource_utilization_rate),'\n')
     else:
         print('Number of protected services blocked:', pro_serv_block_num, ', blocking rate:{:.2%}'.format(pro_serv_block_rate))
-        Proportion_of_redundant_resources = total_allo_pro_serv_bw / total_bw
-        print('The proportion of redundant resources:{:.2%}'.format(Proportion_of_redundant_resources))
+
         rest_bw_ = 0
         for __, value in net.network_status.items():
             for __, re_bw in value.items():
@@ -108,79 +137,113 @@ def baseline(net, serv_matrix: dict, pro_serv_num: int, traffic_num: int, flag: 
         resource_utilization_rate = (total_bw - rest_bw_) / total_bw
         print('Resource utilization rate of protected services:{:.2%}\n'.format(resource_utilization_rate))
 
+    return serv_path, pro_serv_block_num, total_allo_pro_serv_bw, shared_list
 
-    return serv_path, pro_serv_block_num
-
-def ksp_FF(single_serv, net, k, flag=True):
-    """
-    Calculate paths for services and allocate optical and OSU resources based on ksp + First Fit (including working path and backup path)
-
-    Args:
-        single_serv: A list of single service attribute.
-        net: A instance of Network class (including graph for calculating working paths and graph_backip for calculating protection paths)
-        k: The k of KSP 
-        flag: True -> compute working paths for protected service or paths for other traffic; False -> compute backup paths for protected service
+def ksp_FF(id_set, fault_type, serv, serv_path, pro_serv_num, single_serv, net, bias, is_share, k, flag=True):
     
-    Returns:
-        allo_flag: True -> allocation succeeded; False -> allocation failed
-        work_path: A list of allocated working path
-        work_wave_avail_id: A wavelength id of allocated working path 
-        backup_path: A list of allocated backup path
-        backup_wave_avail_id: A wavelength id of allocated backup path 
-    """
     src = single_serv['src_dst'][0]
     dst = single_serv['src_dst'][1]
-    allo_flag = False
-    work_path = [] # list of service allocated paths: [service ID, [the allocated path]]
-    backup_path = [] # list of service allocated paths: [service ID, [the allocated path]]
-    work_wave_avail_id = None
-    backup_wave_avail_id = None
-    # alloc_path = [] # list of service allocated paths: [service ID, [the allocated path]]
+    
 
-    work_ksp_list, _ = ft.k_shortest_paths(net.graph, src, dst, k)
+    if flag == True:
+        allo_flag = False
+        work_path = []
+        backup_path = [] # list of service allocated paths: [service ID, [the allocated path]]
+        work_wave_avail_id = None
+        backup_wave_avail_id = None
 
-    for w_k_l in work_ksp_list:
-        
-        # Eliminate the situation where the direct connection of the working path leads to the same calculation result of the protection path
-        if flag == True:
-            remove= w_k_l[1:-1]
-            net_bp = cp.deepcopy(net)
-            net_bp.graph_remove_nodes(remove) # Protection path and working path must not intersect
+        work_ksp_list, _ = ft.k_shortest_paths(net.graph, src, dst, k)
+        for w_k_l in work_ksp_list:
             backup_attribute = cp.deepcopy(single_serv)
-            backup_attribute[3] = 2 # Protection pipeline bandwidth: 2M
-            
-            try:
-                backup_ksp_list, _ = ft.k_shortest_paths(net_bp.graph, src, dst, k)
-            except nx.NetworkXNoPath:
-                continue
+            backup_attribute['bw'] = bias
+            if fault_type == 'link':
+                remove= w_k_l[1:-1]
+                net_bp = cp.deepcopy(net)
+                net_bp.graph_remove_nodes(remove) # Protection path and working path must not intersect    
+                try:
+                    backup_ksp_list, _ = ft.k_shortest_paths(net_bp.graph, src, dst, k)
+                except nx.NetworkXNoPath:
+                    continue
+            elif fault_type == 'port':
+                backup_ksp_list, _ = ft.k_shortest_paths(net.graph, src, dst, k)
 
-        work_path_avail_flag, work_wave_avail_id, work_link_key_list = first_fit(net, w_k_l, single_serv)
-        
-        if work_path_avail_flag == True:
-            if flag == True:
+            work_path_avail_flag, work_wave_avail_id, work_link_key_list = first_fit(net, w_k_l, single_serv)
+
+            if work_path_avail_flag == True:
                 for b_k_l in backup_ksp_list:
                     backup_path_avail_flag, backup_wave_avail_id, backup_link_key_list = first_fit(net, b_k_l, backup_attribute)
 
-                    if backup_link_key_list == work_link_key_list:
-                        continue
-
+                    if fault_type == 'link':
+                        if backup_link_key_list == work_link_key_list:
+                            continue
+                    elif fault_type == 'port':
+                        if (backup_link_key_list == work_link_key_list) & (backup_wave_avail_id == work_wave_avail_id):
+                            continue
+                    
                     if backup_path_avail_flag == True:
-
-                        for key in backup_link_key_list:
-                            net.network_status[key][backup_wave_avail_id] = net.network_status[key][backup_wave_avail_id]- 2
-                        backup_path = backup_link_key_list
                         allo_flag = True
                         break
-            else:
-                allo_flag = True
-
+            
             if allo_flag == True:
                 for key in work_link_key_list:
                     net.network_status[key][work_wave_avail_id] = net.network_status[key][work_wave_avail_id] - single_serv['bw']
                 work_path = work_link_key_list
+                for key in backup_link_key_list:
+                    net.network_status[key][backup_wave_avail_id] = net.network_status[key][backup_wave_avail_id] - bias
+                backup_path = backup_link_key_list
                 break
     
-    return allo_flag, work_path, work_wave_avail_id, backup_path, backup_wave_avail_id
+        return allo_flag, work_path, work_wave_avail_id, backup_path, backup_wave_avail_id, None
+
+
+    elif flag == False:
+        allo_flag = False
+        tra_path = []
+        tra_wave_avail_id = None
+
+        if is_share == True:
+            for s in serv.serv_matrix[:pro_serv_num]:
+                if serv_path[s['id']] != {'block': []}:
+                    if (single_serv['src_dst'] == s['src_dst']) and (single_serv['bw'] <= serv_path[s['id']]['backup_path'][2]):
+                        if s['id'] not in id_set :
+                            path = serv_path[s['id']]['backup_path']
+                            id = s['id']
+                            allo_flag = True
+                            tra_wave_avail_id = path[1]
+                            tra_path = path[0]
+
+                            return allo_flag, tra_path, tra_wave_avail_id, [], None, id
+            
+            tra_ksp_list, _ = ft.k_shortest_paths(net.graph, src, dst, k)
+                
+            for t_k_l in tra_ksp_list:
+                
+                tra_path_avail_flag, tra_wave_avail_id, tra_link_key_list = first_fit(net, t_k_l, single_serv)
+
+                if tra_path_avail_flag == True:
+                    allo_flag = True
+                    for key in tra_link_key_list:
+                        net.network_status[key][tra_wave_avail_id] = net.network_status[key][tra_wave_avail_id] - single_serv['bw']
+                    tra_path = tra_link_key_list
+                    break
+            
+            return allo_flag, tra_path, tra_wave_avail_id, [], None, None
+
+        else:
+            tra_ksp_list, _ = ft.k_shortest_paths(net.graph, src, dst, k)
+                
+            for t_k_l in tra_ksp_list:
+                
+                tra_path_avail_flag, tra_wave_avail_id, tra_link_key_list = first_fit(net, t_k_l, single_serv)
+
+                if tra_path_avail_flag == True:
+                    allo_flag = True
+                    for key in tra_link_key_list:
+                        net.network_status[key][tra_wave_avail_id] = net.network_status[key][tra_wave_avail_id] - single_serv['bw']
+                    tra_path = tra_link_key_list
+                    break
+            
+            return allo_flag, tra_path, tra_wave_avail_id, [], None, None
 
 def first_fit(net, path_list, single_serv):
     """
@@ -233,5 +296,5 @@ if __name__ == '__main__':
 
     serv = Service()
     serv.generate_service(net, 50, 300)
-    heuristic(net, serv.serv_matrix, 50, 300)
+
 
